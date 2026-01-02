@@ -1,0 +1,207 @@
+openapi: 3.1.0
+info:
+  title: BeeBloom Local Contract (MVP)
+  version: 0.1.0
+  description: >-
+    Local-only API surface mapping in-app operations (no network). Server is conceptual
+    (`app://local`) to document data shapes for Tinybase store and UI contracts.
+servers:
+  - url: app://local
+paths:
+  /habits:
+    get:
+      summary: List habits
+      responses:
+        '200':
+          description: Habits
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Habit'
+    post:
+      summary: Create habit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HabitCreate'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Habit'
+  /habits/{habitId}:
+    parameters:
+      - name: habitId
+        in: path
+        required: true
+        schema:
+          type: string
+    patch:
+      summary: Update habit
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/HabitUpdate'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Habit'
+    delete:
+      summary: Delete habit (and checks)
+      responses:
+        '204':
+          description: Deleted
+  /habits/{habitId}/checks/{date}:
+    parameters:
+      - name: habitId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: date
+        in: path
+        required: true
+        description: ISO date YYYY-MM-DD (today or yesterday only)
+        schema:
+          type: string
+          format: date
+    put:
+      summary: Upsert/toggle daily check
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DailyCheckUpdate'
+      responses:
+        '200':
+          description: Upserted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DailyCheck'
+  /today:
+    get:
+      summary: Today view payload
+      responses:
+        '200':
+          description: Habits with today's check states and supportive copy hook
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  habits:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/HabitToday'
+  /weekly:
+    get:
+      summary: Weekly view payload
+      responses:
+        '200':
+          description: Habits with last 7 days of checks
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/HabitWeekly'
+components:
+  schemas:
+    Habit:
+      type: object
+      required: [id, title, color, createdAt]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        color:
+          type: string
+        group:
+          type: string
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+        deletedAt:
+          type: string
+          format: date-time
+          nullable: true
+    HabitCreate:
+      type: object
+      required: [title]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        color:
+          type: string
+        group:
+          type: string
+          nullable: true
+    HabitUpdate:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        color:
+          type: string
+        group:
+          type: string
+    DailyCheck:
+      type: object
+      required: [habitId, date, completed]
+      properties:
+        habitId:
+          type: string
+        date:
+          type: string
+          format: date
+        completed:
+          type: boolean
+        updatedAt:
+          type: string
+          format: date-time
+    DailyCheckUpdate:
+      type: object
+      required: [completed]
+      properties:
+        completed:
+          type: boolean
+    HabitToday:
+      allOf:
+        - $ref: '#/components/schemas/Habit'
+        - type: object
+          properties:
+            today:
+              $ref: '#/components/schemas/DailyCheck'
+    HabitWeekly:
+      allOf:
+        - $ref: '#/components/schemas/Habit'
+        - type: object
+          properties:
+            checks:
+              type: array
+              items:
+                $ref: '#/components/schemas/DailyCheck'
