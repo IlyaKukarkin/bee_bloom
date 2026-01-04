@@ -1,4 +1,4 @@
-# BeeBloom 🌸
+# BeeBloom 🌸🌸
 
 A gentle habit tracker that feels like a quiet garden, not a productivity app.
 
