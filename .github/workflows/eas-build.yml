@@ -24,7 +24,7 @@ jobs:
           eas build --platform ios --non-interactive --no-wait --json > build.json
           node -e "const fs=require('fs');const data=JSON.parse(fs.readFileSync('build.json','utf8'));const first=Array.isArray(data)?data[0]:data; if(!first?.id){console.error('No build id found');process.exit(1);} const url='https://expo.dev/accounts/ilyakukarkin-org/projects/beebloom/builds/'+first.id; console.log('Build URL:', url); fs.appendFileSync(process.env.GITHUB_ENV, '\nBUILD_URL='+url+'\n');"
       - name: Comment build link on PR
-        if: github.event_name == 'pull_request' && env.BUILD_URL
+        if: github.event_name == 'pull_request' && env.BUILD_URL && github.event.pull_request.head.repo.full_name == github.repository
         uses: actions/github-script@v7
         env:
           BUILD_URL: ${{ env.BUILD_URL }}
