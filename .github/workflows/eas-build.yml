@@ -1,0 +1,52 @@
+name: EAS Build
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+  build:
+    name: Install and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Install dependencies
+        run: npm ci
+      - name: Build on EAS
+        run: |
+          eas build --platform ios --non-interactive --no-wait --json > build.json
+          node -e "const fs=require('fs');const data=JSON.parse(fs.readFileSync('build.json','utf8'));const first=Array.isArray(data)?data[0]:data; if(!first?.id){console.error('No build id found');process.exit(1);} const url='https://expo.dev/accounts/ilyakukarkin-org/projects/beebloom/builds/'+first.id; console.log('Build URL:', url); fs.appendFileSync(process.env.GITHUB_ENV, '\nBUILD_URL='+url+'\n');"
+      - name: Comment build link on PR
+        if: github.event_name == 'pull_request' && env.BUILD_URL && github.event.pull_request.head.repo.full_name == github.repository
+        uses: actions/github-script@v7
+        env:
+          BUILD_URL: ${{ env.BUILD_URL }}
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const url = process.env.BUILD_URL;
+            if (!url) {
+              core.info('No build URL available to comment.');
+              return;
+            }
+            const issueNumber = context.issue.number;
+            if (!issueNumber) {
+              core.info('No PR number found. Skipping comment.');
+              return;
+            }
+            const body = `📦 EAS iOS build kicked off:\n${url}`;
+            await github.rest.issues.createComment({
+              ...context.repo,
+              issue_number: issueNumber,
+              body,
+            });
+      # Uncomment below to build Android
+      # - name: Build Android on EAS
+      #   run: eas build --platform android --non-interactive --no-wait

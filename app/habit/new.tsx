@@ -25,6 +25,13 @@ export default function NewHabit() {
   const [color, setColor] = useState(COLORS[0].value);
   const [group, setGroup] = useState('');
 
+  const resetForm = () => {
+    setTitle('');
+    setDescription('');
+    setColor(COLORS[0].value);
+    setGroup('');
+  };
+
   const handleSave = () => {
     if (!title.trim() || !store) {
       return;
@@ -37,11 +44,17 @@ export default function NewHabit() {
       group: group || null,
     });
 
+    resetForm();
+    router.back();
+  };
+
+  const handleCancel = () => {
+    resetForm();
     router.back();
   };
 
   return (
-    <SafeAreaView style={styles.screen} edges={['bottom']}>
+    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <Surface style={styles.card}>
           <Title>New Habit</Title>
@@ -104,7 +117,7 @@ export default function NewHabit() {
           </View>
 
           <View style={styles.actions}>
-            <Button onPress={() => router.back()} style={styles.buttonSecondary}>
+            <Button onPress={handleCancel} variant="secondary" style={styles.buttonSecondary}>
               Cancel
             </Button>
             <Button onPress={handleSave} disabled={!title.trim()}>

@@ -21,8 +21,9 @@ export function Body({ children, muted, style }: { children: React.ReactNode; mu
   return <RNText style={[styles.body, { color: muted ? theme.colors.subtext : theme.colors.text }, style]}>{children}</RNText>;
 }
 
-export function Button({ children, onPress, disabled, style }: { children: React.ReactNode; onPress: () => void; disabled?: boolean; style?: ViewStyle }) {
+export function Button({ children, onPress, disabled, style, variant = 'primary' }: { children: React.ReactNode; onPress: () => void; disabled?: boolean; style?: ViewStyle; variant?: 'primary' | 'secondary' }) {
   const theme = useTheme();
+  const isSecondary = variant === 'secondary';
   return (
     <Pressable
       onPress={onPress}
@@ -30,7 +31,7 @@ export function Button({ children, onPress, disabled, style }: { children: React
       style={({ pressed }) => [
         styles.button,
         {
-          backgroundColor: theme.colors.accent,
+          backgroundColor: isSecondary ? theme.colors.warning : theme.colors.accent,
           opacity: pressed ? 0.85 : disabled ? 0.4 : 1,
         },
         style,

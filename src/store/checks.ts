@@ -1,6 +1,6 @@
 import { Store } from 'tinybase';
 import { DailyCheckRow } from './types';
-import { todayKey, yesterdayKey, isTodayOrYesterday } from '../lib/dates';
+import { todayKey, isTodayOrYesterday, getWeekStartingMonday } from '../lib/dates';
 
 function generateCheckId(habitId: string, date: string): string {
   return `${habitId}:${date}`;
@@ -85,14 +85,7 @@ export function getWeeklyChecks(
   habitId: string,
   startDate: Date = new Date()
 ): DailyCheckRow[] {
-  // Get last 7 days from startDate (inclusive)
-  const dates: string[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(startDate);
-    d.setDate(d.getDate() - i);
-    dates.push(todayKey(d));
-  }
-
+  const dates = getWeekStartingMonday(startDate);
   const checks = getChecksForHabit(store, habitId, dates);
   return dates.map((date) => checks.get(date) || { habitId, date, completed: false, updatedAt: '' });
 }

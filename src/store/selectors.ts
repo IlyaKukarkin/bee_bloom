@@ -2,7 +2,7 @@ import { Store } from 'tinybase';
 import { HabitRow } from './types';
 import { getActiveHabits } from './habits';
 import { getWeeklyChecks } from './checks';
-import { todayKey } from '../lib/dates';
+import { getWeekStartingMonday } from '../lib/dates';
 
 export type HabitWithWeeklyChecks = {
   habit: HabitRow;
@@ -41,12 +41,7 @@ export function getWeeklyDataByGroup(store: Store): Map<string, HabitWithWeeklyC
   return grouped;
 }
 
-export function getLast7Days(startDate = new Date()): string[] {
-  const dates: string[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(startDate);
-    d.setDate(d.getDate() - i);
-    dates.push(todayKey(d));
-  }
-  return dates;
+// Returns the current week (Monday through Sunday) based on the provided date
+export function getWeekDaysFromMonday(startDate = new Date()): string[] {
+  return getWeekStartingMonday(startDate);
 }

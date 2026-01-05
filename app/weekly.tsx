@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { useStore } from 'tinybase/ui-react';
 import { Surface, Title, Body, Button } from '../src/components/ui';
-import { getWeeklyDataByGroup, getLast7Days, HabitWithWeeklyChecks } from '../src/store/selectors';
+import { getWeeklyDataByGroup, getWeekDaysFromMonday, HabitWithWeeklyChecks } from '../src/store/selectors';
 import { useTheme } from '../src/lib/theme';
 
 export default function Weekly() {
@@ -12,7 +12,7 @@ export default function Weekly() {
   const store = useStore();
   const theme = useTheme();
   const [groupedData, setGroupedData] = useState<Map<string, HabitWithWeeklyChecks[]>>(new Map());
-  const dates = getLast7Days();
+  const dates = getWeekDaysFromMonday();
 
   const loadData = () => {
     if (!store) return;
