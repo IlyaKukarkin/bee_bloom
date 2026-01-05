@@ -1,0 +1,77 @@
+name: Version Check
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+jobs:
+  check-version:
+    name: Check version bump
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: Get current versions
+        id: current
+        run: |
+          PACKAGE_VERSION=$(jq -r '.version' package.json)
+          APP_VERSION=$(jq -r '.expo.version' app.json)
+          echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+          echo "app_version=$APP_VERSION" >> $GITHUB_OUTPUT
+          echo "Current package.json version: $PACKAGE_VERSION"
+          echo "Current app.json version: $APP_VERSION"
+
+      - name: Get master versions
+        id: master
+        run: |
+          git fetch origin master
+          PACKAGE_VERSION=$(git show origin/master:package.json | jq -r '.version')
+          APP_VERSION=$(git show origin/master:app.json | jq -r '.expo.version')
+          echo "package_version=$PACKAGE_VERSION" >> $GITHUB_OUTPUT
+          echo "app_version=$APP_VERSION" >> $GITHUB_OUTPUT
+          echo "Master package.json version: $PACKAGE_VERSION"
+          echo "Master app.json version: $APP_VERSION"
+
+      - name: Validate version changes
+        run: |
+          CURRENT_PACKAGE="${{ steps.current.outputs.package_version }}"
+          CURRENT_APP="${{ steps.current.outputs.app_version }}"
+          MASTER_PACKAGE="${{ steps.master.outputs.package_version }}"
+          MASTER_APP="${{ steps.master.outputs.app_version }}"
+          
+          PACKAGE_CHANGED=false
+          APP_CHANGED=false
+          
+          if [ "$CURRENT_PACKAGE" != "$MASTER_PACKAGE" ]; then
+            echo "✅ package.json version changed: $MASTER_PACKAGE → $CURRENT_PACKAGE"
+            PACKAGE_CHANGED=true
+          else
+            echo "❌ package.json version unchanged: $CURRENT_PACKAGE"
+          fi
+          
+          if [ "$CURRENT_APP" != "$MASTER_APP" ]; then
+            echo "✅ app.json version changed: $MASTER_APP → $CURRENT_APP"
+            APP_CHANGED=true
+          else
+            echo "❌ app.json version unchanged: $CURRENT_APP"
+          fi
+          
+          if [ "$PACKAGE_CHANGED" = false ] || [ "$APP_CHANGED" = false ]; then
+            echo ""
+            echo "❌ Version check failed!"
+            echo "Both package.json and app.json versions must be updated."
+            echo ""
+            echo "Current versions:"
+            echo "  package.json: $CURRENT_PACKAGE"
+            echo "  app.json: $CURRENT_APP"
+            echo ""
+            echo "Master versions:"
+            echo "  package.json: $MASTER_PACKAGE"
+            echo "  app.json: $MASTER_APP"
+            exit 1
+          fi
+          
+          echo ""
+          echo "✅ Version check passed! Both versions have been updated."
