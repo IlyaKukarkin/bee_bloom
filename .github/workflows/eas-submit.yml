@@ -1,3 +1,4 @@
+# Note: EXPO_TOKEN must be configured in repository secrets
 name: EAS Submit (iOS)
 on:
   push:
@@ -20,6 +21,37 @@ jobs:
           token: ${{ secrets.EXPO_TOKEN }}
       - name: Install dependencies
         run: npm ci
+      - name: Verify latest build
+        run: |
+          echo "Fetching latest iOS build..."
+          eas build:list --platform ios --limit 1 --json > build.json
+          
+          # Check if build exists
+          BUILD_COUNT=$(jq '. | length' build.json)
+          if [ "$BUILD_COUNT" -eq 0 ]; then
+            echo "❌ No iOS builds found"
+            exit 1
+          fi
+          
+          # Check build status
+          BUILD_STATUS=$(jq -r '.[0].status' build.json)
+          if [ "$BUILD_STATUS" != "FINISHED" ]; then
+            echo "❌ Latest build is not finished (status: $BUILD_STATUS)"
+            exit 1
+          fi
+          
+          # Check commit match
+          BUILD_COMMIT=$(jq -r '.[0].gitCommitHash' build.json)
+          CURRENT_COMMIT="${GITHUB_SHA}"
+          if [ "$BUILD_COMMIT" != "$CURRENT_COMMIT" ]; then
+            echo "⚠️  Warning: Build commit ($BUILD_COMMIT) does not match current commit ($CURRENT_COMMIT)"
+            echo "This may submit a build from a different commit"
+          else
+            echo "✅ Build commit matches current commit"
+          fi
+          
+          BUILD_ID=$(jq -r '.[0].id' build.json)
+          echo "✅ Latest build is ready for submission (ID: $BUILD_ID, Status: $BUILD_STATUS)"
       - name: Submit latest iOS build
         run: eas submit --platform ios --latest --non-interactive
       # Uncomment below to submit Android when ready
