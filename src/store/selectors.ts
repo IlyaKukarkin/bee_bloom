@@ -41,6 +41,7 @@ export function getWeeklyDataByGroup(store: Store): Map<string, HabitWithWeeklyC
   return grouped;
 }
 
-export function getLast7Days(startDate = new Date()): string[] {
+// Returns the current week (Monday through Sunday) based on the provided date
+export function getWeekDaysFromMonday(startDate = new Date()): string[] {
   return getWeekStartingMonday(startDate);
 }
