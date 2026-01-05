@@ -1,9 +1,18 @@
+export type HabitGroupRow = {
+  id: string;
+  title: string;
+  color?: string | null;
+  order: number;
+  createdAt: string;
+};
+
 export type HabitRow = {
   id: string;
   title: string;
   description?: string | null;
   color: string;
-  group?: string | null;
+  groupId?: string | null; // null = ungrouped
+  order: number;
   createdAt: string;
   deletedAt?: string | null;
 };

@@ -20,7 +20,7 @@ function getDefaultColor(index: number): string {
 
 export function createHabit(
   store: Store,
-  habit: Omit<HabitRow, 'id' | 'createdAt' | 'deletedAt'>
+  habit: Omit<HabitRow, 'id' | 'createdAt' | 'deletedAt' | 'order'>
 ): string {
   const id = generateId();
   const createdAt = new Date().toISOString();
@@ -33,12 +33,20 @@ export function createHabit(
 
   const color = habit.color || getDefaultColor(habitCount);
 
+  // Calculate next order within target group
+  const groupId = habit.groupId?.trim() || null;
+  const groupHabits = Object.values(store.getTable('habits')).filter(
+    (h: any) => h.groupId === groupId && !h.deletedAt
+  );
+  const maxOrder = groupHabits.reduce((max, h: any) => Math.max(max, h.order || 0), -10);
+
   store.setRow('habits', id, {
     id,
     title: habit.title.trim(),
     description: habit.description?.trim() || null,
     color,
-    group: habit.group?.trim() || null,
+    groupId,
+    order: maxOrder + 10,
     createdAt,
     deletedAt: null,
   });
@@ -49,7 +57,7 @@ export function createHabit(
 export function updateHabit(
   store: Store,
   id: string,
-  updates: Partial<Pick<HabitRow, 'title' | 'description' | 'color' | 'group'>>
+  updates: Partial<Pick<HabitRow, 'title' | 'description' | 'color' | 'groupId'>>
 ): void {
   const existing = store.getRow('habits', id);
   if (!existing || existing.deletedAt) {
@@ -66,8 +74,8 @@ export function updateHabit(
   if (updates.color !== undefined) {
     newRow.color = updates.color;
   }
-  if (updates.group !== undefined) {
-    newRow.group = updates.group?.trim() || null;
+  if (updates.groupId !== undefined) {
+    newRow.groupId = updates.groupId?.trim() || null;
   }
 
   store.setPartialRow('habits', id, newRow);
@@ -105,4 +113,82 @@ export function getHabitById(store: Store, id: string): HabitRow | null {
     return null;
   }
   return row as HabitRow;
+}
+
+/**
+ * Reorder a habit within its current group by moving it to targetIndex
+ */
+export function reorderHabitWithinGroup(store: Store, habitId: string, targetIndex: number): void {
+  const habit = store.getRow('habits', habitId) as any;
+  if (!habit || habit.deletedAt) {
+    throw new Error(`Habit ${habitId} not found or deleted`);
+  }
+
+  const groupId = habit.groupId || null;
+  const groupHabits = Object.values(store.getTable('habits'))
+    .filter((h: any) => h.groupId === groupId && !h.deletedAt && h.id !== habitId)
+    .sort((a: any, b: any) => a.order - b.order);
+
+  // Insert at targetIndex
+  groupHabits.splice(targetIndex, 0, habit);
+
+  // Resequence orders
+  groupHabits.forEach((h: any, index) => {
+    store.setCell('habits', h.id, 'order', index * 10);
+  });
+}
+
+/**
+ * Move a habit to a different group at targetIndex
+ */
+export function moveHabitToGroup(
+  store: Store,
+  habitId: string,
+  targetGroupId: string | null,
+  targetIndex: number
+): void {
+  const habit = store.getRow('habits', habitId) as any;
+  if (!habit || habit.deletedAt) {
+    throw new Error(`Habit ${habitId} not found or deleted`);
+  }
+
+  const oldGroupId = habit.groupId || null;
+
+  // Update habit groupId
+  store.setCell('habits', habitId, 'groupId', targetGroupId);
+
+  // Compact old group
+  if (oldGroupId !== targetGroupId) {
+    const oldGroupHabits = Object.values(store.getTable('habits'))
+      .filter((h: any) => h.groupId === oldGroupId && !h.deletedAt && h.id !== habitId)
+      .sort((a: any, b: any) => a.order - b.order);
+
+    oldGroupHabits.forEach((h: any, index) => {
+      store.setCell('habits', h.id, 'order', index * 10);
+    });
+  }
+
+  // Insert into new group at targetIndex
+  const newGroupHabits = Object.values(store.getTable('habits'))
+    .filter((h: any) => h.groupId === targetGroupId && !h.deletedAt && h.id !== habitId)
+    .sort((a: any, b: any) => a.order - b.order);
+
+  newGroupHabits.splice(targetIndex, 0, habit);
+
+  newGroupHabits.forEach((h: any, index) => {
+    store.setCell('habits', h.id, 'order', index * 10);
+  });
+}
+
+/**
+ * Resequence habit orders within a group to normalize gaps
+ */
+export function resequenceHabitOrders(store: Store, groupId: string | null): void {
+  const groupHabits = Object.values(store.getTable('habits'))
+    .filter((h: any) => h.groupId === groupId && !h.deletedAt)
+    .sort((a: any, b: any) => a.order - b.order);
+
+  groupHabits.forEach((h: any, index) => {
+    store.setCell('habits', h.id, 'order', index * 10);
+  });
 }

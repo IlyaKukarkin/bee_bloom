@@ -1,8 +1,8 @@
 import React from 'react';
-import { Pressable, Text as RNText, View, StyleSheet, ViewStyle, TextStyle } from 'react-native';
+import { Pressable, Text as RNText, View, StyleSheet, ViewStyle, TextStyle, StyleProp } from 'react-native';
 import { useTheme } from '../lib/theme';
 
-export function Surface({ children, style }: { children: React.ReactNode; style?: ViewStyle }) {
+export function Surface({ children, style }: { children: React.ReactNode; style?: StyleProp<ViewStyle> }) {
   const theme = useTheme();
   return (
     <View style={[styles.surface, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }, style]}>

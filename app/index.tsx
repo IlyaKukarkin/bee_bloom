@@ -1,17 +1,21 @@
 import React from 'react';
-import { StyleSheet, FlatList, View, TouchableOpacity, Pressable } from 'react-native';
+import { StyleSheet, View, TouchableOpacity, Pressable } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useTable, useRowIds, useStore } from 'tinybase/ui-react';
+import { useStore } from 'tinybase/ui-react';
+import DraggableFlatList, { RenderItemParams, ScaleDecorator } from 'react-native-draggable-flatlist';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { Surface, Title, Body, Button } from '../src/components/ui';
-import { AnimatedRow, AnimatedCheckbox } from '../src/components/animations';
+import { AnimatedCheckbox } from '../src/components/animations';
 import { copy } from '../src/lib/copy';
 import { toggleDailyCheck } from '../src/store/checks';
 import { todayKey } from '../src/lib/dates';
 import { HabitRow } from '../src/store/types';
+import { getGroupedHabits } from '../src/store/selectors';
+import { reorderHabitWithinGroup, moveHabitToGroup } from '../src/store/habits';
 import { useTheme } from '../src/lib/theme';
 
-type HabitWithCheck = HabitRow & { isChecked: boolean };
+type HabitWithCheck = HabitRow & { isChecked: boolean; groupTitle: string | null };
 
 export default function Home() {
   const router = useRouter();
@@ -19,29 +23,42 @@ export default function Home() {
   const store = useStore();
   const today = todayKey();
   
-  // Use Tinybase hooks to reactively get data
-  const habitsTable = useTable('habits') as Record<string, HabitRow>;
-  const checksTable = useTable('checks');
-  const habitIds = useRowIds('habits');
+  const [flatHabits, setFlatHabits] = React.useState<HabitWithCheck[]>([]);
 
-  // Compute habits with checks
-  const habits: HabitWithCheck[] = habitIds
-    .map((id) => {
-      const habit = habitsTable[id];
-      if (!habit || habit.deletedAt) return null;
-      const checkId = `${id}:${today}`;
-      const check = checksTable?.[checkId];
-      return { ...habit, isChecked: check?.completed || false };
-    })
-    .filter((h): h is HabitWithCheck => h !== null)
-    .sort((a, b) => {
-      const groupA = a.group || '';
-      const groupB = b.group || '';
-      if (groupA !== groupB) {
-        return groupA.localeCompare(groupB);
-      }
-      return a.createdAt.localeCompare(b.createdAt);
+  const loadHabits = React.useCallback(() => {
+    if (!store) return;
+    
+    const grouped = getGroupedHabits(store);
+    const checksTable = store.getTable('checks');
+    const flat: HabitWithCheck[] = [];
+
+    grouped.forEach(({ group, habits }) => {
+      habits.forEach((habit) => {
+        const checkId = `${habit.id}:${today}`;
+        const check = checksTable?.[checkId];
+        flat.push({
+          ...habit,
+          isChecked: Boolean(check?.completed),
+          groupTitle: group?.title || null,
+        });
+      });
     });
+
+    setFlatHabits(flat);
+  }, [store, today]);
+
+  React.useEffect(() => {
+    loadHabits();
+    if (!store) return;
+
+    const listenerId = store.addTablesListener(() => {
+      loadHabits();
+    });
+
+    return () => {
+      store.delListener(listenerId);
+    };
+  }, [store, loadHabits]);
 
   const handleToggle = (habitId: string) => {
     if (!store) return;
@@ -52,71 +69,102 @@ export default function Home() {
     router.push({ pathname: '/habit/[id]' as any, params: { id: habitId } });
   };
 
-  if (habits.length === 0) {
+  const handleDragEnd = ({ data, from, to }: { data: HabitWithCheck[]; from: number; to: number }) => {
+    if (!store || from === to) return;
+
+    const movedHabit = flatHabits[from];
+    const targetHabit = data[to];
+
+    // Cross-group move
+    if (movedHabit.groupId !== targetHabit.groupId) {
+      const targetGroupHabits = data.filter((h) => h.groupId === targetHabit.groupId);
+      const targetIndex = targetGroupHabits.findIndex((h) => h.id === targetHabit.id);
+      moveHabitToGroup(store, movedHabit.id, targetHabit.groupId || null, targetIndex);
+    } else {
+      // Within-group reorder
+      const groupHabits = data.filter((h) => h.groupId === movedHabit.groupId);
+      const targetIndex = groupHabits.findIndex((h) => h.id === targetHabit.id);
+      reorderHabitWithinGroup(store, movedHabit.id, targetIndex);
+    }
+  };
+
+  const renderItem = ({ item, drag, isActive }: RenderItemParams<HabitWithCheck>) => {
+    const index = flatHabits.findIndex((h) => h.id === item.id);
+    const showGroupHeader =
+      index === 0 || flatHabits[index - 1]?.groupTitle !== item.groupTitle;
+
     return (
-      <SafeAreaView style={styles.screen}>
-        <Surface style={styles.card}>
-          <Title>{copy.emptyTodayTitle}</Title>
-          <Body muted>{copy.emptyTodayBody}</Body>
-          <Button onPress={() => router.push('/habit/new' as any)}>Add a habit</Button>
-        </Surface>
-      </SafeAreaView>
+      <ScaleDecorator>
+        <View>
+          {showGroupHeader && (
+            <Body muted style={styles.groupHeader}>
+              {item.groupTitle || 'Ungrouped'}
+            </Body>
+          )}
+          <Surface style={[styles.habitRow, isActive && styles.habitRowActive]}>
+            <Pressable style={styles.habitContent} onPress={() => handleEdit(item.id)} onLongPress={drag}>
+              <View style={[styles.colorDot, { backgroundColor: item.color }]} />
+              <View style={styles.habitText}>
+                <Body style={styles.habitTitle}>{item.title}</Body>
+                {item.description && (
+                  <Body muted style={styles.habitDescription}>
+                    {item.description}
+                  </Body>
+                )}
+              </View>
+            </Pressable>
+            <AnimatedCheckbox isChecked={item.isChecked}>
+              <TouchableOpacity
+                style={[
+                  styles.checkbox,
+                  { borderColor: item.color },
+                  item.isChecked && { backgroundColor: item.color },
+                ]}
+                onPress={() => handleToggle(item.id)}
+                accessibilityLabel={item.isChecked ? 'Uncheck' : 'Check'}
+              >
+                {item.isChecked && <Body style={styles.checkmark}>✓</Body>}
+              </TouchableOpacity>
+            </AnimatedCheckbox>
+          </Surface>
+        </View>
+      </ScaleDecorator>
+    );
+  };
+
+  if (flatHabits.length === 0) {
+    return (
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaView style={styles.screen}>
+          <Surface style={styles.card}>
+            <Title>{copy.emptyTodayTitle}</Title>
+            <Body muted>{copy.emptyTodayBody}</Body>
+            <Button onPress={() => router.push('/habit/new' as any)}>Add a habit</Button>
+          </Surface>
+        </SafeAreaView>
+      </GestureHandlerRootView>
     );
   }
 
   return (
-    <SafeAreaView style={styles.screen}>
-      <View style={styles.header}>
-        <Title>Today</Title>
-        <Button onPress={() => router.push('/habit/new' as any)} style={styles.addButton}>
-          + Add
-        </Button>
-      </View>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaView style={styles.screen}>
+        <View style={styles.header}>
+          <Title>Today</Title>
+          <Button onPress={() => router.push('/habit/new' as any)} style={styles.addButton}>
+            + Add
+          </Button>
+        </View>
 
-      <FlatList
-        data={habits}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item, index }) => {
-          // Show group header if first item or different group from previous
-          const showGroupHeader = index === 0 || 
-            (habits[index - 1]?.group || '') !== (item.group || '');
-          
-          return (
-            <AnimatedRow delay={index * 50}>
-              {showGroupHeader && item.group && (
-                <Body muted style={styles.groupHeader}>{item.group}</Body>
-              )}
-              <Surface style={styles.habitRow}>
-                <Pressable
-                  style={styles.habitContent}
-                  onPress={() => handleEdit(item.id)}
-                >
-                  <View style={[styles.colorDot, { backgroundColor: item.color }]} />
-                  <View style={styles.habitText}>
-                    <Body style={styles.habitTitle}>{item.title}</Body>
-                    {item.description && <Body muted style={styles.habitDescription}>{item.description}</Body>}
-                  </View>
-                </Pressable>
-                <AnimatedCheckbox isChecked={item.isChecked}>
-                  <TouchableOpacity
-                    style={[
-                      styles.checkbox,
-                      { borderColor: item.color },
-                      item.isChecked && { backgroundColor: item.color },
-                    ]}
-                    onPress={() => handleToggle(item.id)}
-                    accessibilityLabel={item.isChecked ? 'Uncheck' : 'Check'}
-                  >
-                    {item.isChecked && <Body style={styles.checkmark}>✓</Body>}
-                  </TouchableOpacity>
-                </AnimatedCheckbox>
-              </Surface>
-            </AnimatedRow>
-          );
-        }}
-        contentContainerStyle={styles.list}
-      />
-    </SafeAreaView>
+        <DraggableFlatList
+          data={flatHabits}
+          keyExtractor={(item) => item.id}
+          renderItem={renderItem}
+          onDragEnd={handleDragEnd}
+          contentContainerStyle={styles.list}
+        />
+      </SafeAreaView>
+    </GestureHandlerRootView>
   );
 }
 
@@ -180,6 +228,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
+  },
+  habitRowActive: {
+    opacity: 0.8,
+    transform: [{ scale: 1.02 }],
   },
   checkbox: {
     width: 32,
