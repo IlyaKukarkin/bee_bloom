@@ -24,7 +24,7 @@ jobs:
       - name: Verify latest build
         run: |
           echo "Fetching latest iOS build..."
-          eas build:list --platform ios --limit 1 --json > build.json
+          eas build:list --platform ios --limit 1 --json --non-interactive > build.json
           
           # Check if build exists
           BUILD_COUNT=$(jq '. | length' build.json)
