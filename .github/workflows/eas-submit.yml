@@ -1,0 +1,27 @@
+name: EAS Submit (iOS)
+on:
+  push:
+    branches: [master]
+
+jobs:
+  submit-ios:
+    name: Submit latest iOS build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+          cache: npm
+      - name: Setup Expo and EAS
+        uses: expo/expo-github-action@v8
+        with:
+          eas-version: latest
+          token: ${{ secrets.EXPO_TOKEN }}
+      - name: Install dependencies
+        run: npm ci
+      - name: Submit latest iOS build
+        run: eas submit --platform ios --latest --non-interactive
+      # Uncomment below to submit Android when ready
+      # - name: Submit latest Android build
+      #   run: eas submit --platform android --latest --non-interactive
