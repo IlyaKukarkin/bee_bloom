@@ -84,7 +84,7 @@ export default function EditHabit() {
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={['bottom']}>
+    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
       <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
         <Surface style={styles.card}>
           <Title>Edit Habit</Title>

@@ -85,12 +85,21 @@ export function getWeeklyChecks(
   habitId: string,
   startDate: Date = new Date()
 ): DailyCheckRow[] {
-  // Get last 7 days from startDate (inclusive)
+  // Get the current week starting from Monday
+  const now = new Date(startDate);
+  const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1; // If Sunday, go back 6 days
+  
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const date = now.getDate();
+  
+  // Generate 7 days starting from Monday
   const dates: string[] = [];
-  for (let i = 6; i >= 0; i--) {
-    const d = new Date(startDate);
-    d.setDate(d.getDate() - i);
-    dates.push(todayKey(d));
+  for (let i = 0; i < 7; i++) {
+    const d = new Date(year, month, date - daysFromMonday + i);
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    dates.push(dateStr);
   }
 
   const checks = getChecksForHabit(store, habitId, dates);
