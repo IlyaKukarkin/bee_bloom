@@ -1,49 +1,46 @@
 {
-  "expo": {
-    "name": "BeeBloom",
-    "slug": "beebloom",
-    "scheme": "beebloom",
-    "version": "1.0.0",
-    "orientation": "portrait",
-    "icon": "./assets/icon.png",
-    "userInterfaceStyle": "light",
-    "newArchEnabled": true,
-    "splash": {
-      "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#fcde9e"
-    },
-    "ios": {
-      "supportsTablet": false,
-      "bundleIdentifier": "com.ilyakukarkinorg.beebloom",
-      "infoPlist": {
-        "ITSAppUsesNonExemptEncryption": false
-      }
-    },
-    "android": {
-      "adaptiveIcon": {
-        "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
-      },
-      "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false,
-      "package": "com.ilyakukarkinorg.beebloom"
-    },
-    "web": {
-      "favicon": "./assets/favicon.png"
-    },
-    "plugins": [
-      "expo-sqlite",
-      "expo-router"
-    ],
-    "experiments": {
-      "typedRoutes": true
-    },
-    "extra": {
-      "eas": {
-        "projectId": "5af1c1df-c7f7-4d88-948e-aefc06a4fa1f"
-      }
-    },
-    "owner": "ilyakukarkin-org"
-  }
+	"expo": {
+		"name": "BeeBloom",
+		"slug": "beebloom",
+		"scheme": "beebloom",
+		"version": "1.0.0",
+		"orientation": "portrait",
+		"icon": "./assets/icon.png",
+		"userInterfaceStyle": "light",
+		"newArchEnabled": true,
+		"splash": {
+			"image": "./assets/splash-icon.png",
+			"resizeMode": "contain",
+			"backgroundColor": "#fcde9e"
+		},
+		"ios": {
+			"supportsTablet": false,
+			"bundleIdentifier": "com.ilyakukarkinorg.beebloom",
+			"infoPlist": {
+				"ITSAppUsesNonExemptEncryption": false
+			}
+		},
+		"android": {
+			"adaptiveIcon": {
+				"foregroundImage": "./assets/adaptive-icon.png",
+				"backgroundColor": "#ffffff"
+			},
+			"edgeToEdgeEnabled": true,
+			"predictiveBackGestureEnabled": false,
+			"package": "com.ilyakukarkinorg.beebloom"
+		},
+		"web": {
+			"favicon": "./assets/favicon.png"
+		},
+		"plugins": ["expo-sqlite", "expo-router"],
+		"experiments": {
+			"typedRoutes": true
+		},
+		"extra": {
+			"eas": {
+				"projectId": "5af1c1df-c7f7-4d88-948e-aefc06a4fa1f"
+			}
+		},
+		"owner": "ilyakukarkin-org"
+	}
 }

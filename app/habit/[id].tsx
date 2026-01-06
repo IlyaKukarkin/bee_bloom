@@ -1,223 +1,230 @@
-import React, { useState, useEffect } from 'react';
-import { View, TextInput, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useRouter, useLocalSearchParams } from 'expo-router';
-import { useStore } from 'tinybase/ui-react';
-import { Surface, Title, Body, Button } from '../../src/components/ui';
-import { getHabitById, updateHabit, deleteHabit } from '../../src/store/habits';
-import { useTheme } from '../../src/lib/theme';
-import { copy } from '../../src/lib/copy';
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
+import {
+	Alert,
+	ScrollView,
+	StyleSheet,
+	TextInput,
+	TouchableOpacity,
+	View,
+} from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useStore } from "tinybase/ui-react";
+import { Body, Button, Surface, Title } from "../../src/components/ui";
+import { copy } from "../../src/lib/copy";
+import { useTheme } from "../../src/lib/theme";
+import { deleteHabit, getHabitById, updateHabit } from "../../src/store/habits";
 
 const COLORS = [
-  { name: 'Green', value: '#3c7c5a' },
-  { name: 'Sage', value: '#8fb89e' },
-  { name: 'Warm', value: '#d88c4a' },
-  { name: 'Blue', value: '#7a9cb8' },
-  { name: 'Taupe', value: '#b8a89e' },
+	{ name: "Green", value: "#3c7c5a" },
+	{ name: "Sage", value: "#8fb89e" },
+	{ name: "Warm", value: "#d88c4a" },
+	{ name: "Blue", value: "#7a9cb8" },
+	{ name: "Taupe", value: "#b8a89e" },
 ];
 
 export default function EditHabit() {
-  const router = useRouter();
-  const params = useLocalSearchParams();
-  const habitId = params.id as string;
-  
-  const store = useStore();
-  const theme = useTheme();
+	const router = useRouter();
+	const params = useLocalSearchParams();
+	const habitId = params.id as string;
 
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [color, setColor] = useState(COLORS[0].value);
-  const [group, setGroup] = useState('');
-  const [loaded, setLoaded] = useState(false);
+	const store = useStore();
+	const theme = useTheme();
 
-  useEffect(() => {
-    if (!store) return;
-    const habit = getHabitById(store, habitId);
-    if (!habit) {
-      router.back();
-      return;
-    }
+	const [title, setTitle] = useState("");
+	const [description, setDescription] = useState("");
+	const [color, setColor] = useState(COLORS[0].value);
+	const [group, setGroup] = useState("");
+	const [loaded, setLoaded] = useState(false);
 
-    setTitle(habit.title);
-    setDescription(habit.description || '');
-    setColor(habit.color);
-    setGroup(habit.group || '');
-    setLoaded(true);
-  }, [habitId, store]);
+	useEffect(() => {
+		if (!store) return;
+		const habit = getHabitById(store, habitId);
+		if (!habit) {
+			router.back();
+			return;
+		}
 
-  const handleSave = () => {
-    if (!title.trim() || !store) {
-      return;
-    }
+		setTitle(habit.title);
+		setDescription(habit.description || "");
+		setColor(habit.color);
+		setGroup(habit.group || "");
+		setLoaded(true);
+	}, [habitId, store, router.back]);
 
-    updateHabit(store, habitId, {
-      title,
-      description: description || null,
-      color,
-      group: group || null,
-    });
+	const handleSave = () => {
+		if (!title.trim() || !store) {
+			return;
+		}
 
-    router.back();
-  };
+		updateHabit(store, habitId, {
+			title,
+			description: description || null,
+			color,
+			group: group || null,
+		});
 
-  const handleDelete = () => {
-    if (!store) return;
-    Alert.alert(
-      copy.deleteConfirmTitle,
-      copy.deleteConfirmBody,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Remove',
-          style: 'destructive',
-          onPress: () => {
-            deleteHabit(store, habitId);
-            router.back();
-          },
-        },
-      ]
-    );
-  };
+		router.back();
+	};
 
-  if (!loaded) {
-    return null;
-  }
+	const handleDelete = () => {
+		if (!store) return;
+		Alert.alert(copy.deleteConfirmTitle, copy.deleteConfirmBody, [
+			{ text: "Cancel", style: "cancel" },
+			{
+				text: "Remove",
+				style: "destructive",
+				onPress: () => {
+					deleteHabit(store, habitId);
+					router.back();
+				},
+			},
+		]);
+	};
 
-  return (
-    <SafeAreaView style={styles.screen} edges={['top', 'bottom']}>
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
-        <Surface style={styles.card}>
-          <Title>Edit Habit</Title>
+	if (!loaded) {
+		return null;
+	}
 
-          <View style={styles.field}>
-            <Body style={styles.label}>Title</Body>
-            <TextInput
-              style={[styles.input, { borderColor: theme.colors.border }]}
-              value={title}
-              onChangeText={setTitle}
-              placeholder="Daily walk"
-              placeholderTextColor={theme.colors.subtext}
-              maxLength={80}
-            />
-          </View>
+	return (
+		<SafeAreaView style={styles.screen} edges={["top", "bottom"]}>
+			<ScrollView style={styles.scroll} contentContainerStyle={styles.content}>
+				<Surface style={styles.card}>
+					<Title>Edit Habit</Title>
 
-          <View style={styles.field}>
-            <Body style={styles.label}>Description (optional)</Body>
-            <TextInput
-              style={[styles.input, styles.multiline, { borderColor: theme.colors.border }]}
-              value={description}
-              onChangeText={setDescription}
-              placeholder="A gentle stroll around the block"
-              placeholderTextColor={theme.colors.subtext}
-              maxLength={200}
-              multiline
-              numberOfLines={3}
-            />
-          </View>
+					<View style={styles.field}>
+						<Body style={styles.label}>Title</Body>
+						<TextInput
+							style={[styles.input, { borderColor: theme.colors.border }]}
+							value={title}
+							onChangeText={setTitle}
+							placeholder="Daily walk"
+							placeholderTextColor={theme.colors.subtext}
+							maxLength={80}
+						/>
+					</View>
 
-          <View style={styles.field}>
-            <Body style={styles.label}>Group (optional)</Body>
-            <TextInput
-              style={[styles.input, { borderColor: theme.colors.border }]}
-              value={group}
-              onChangeText={setGroup}
-              placeholder="Morning routine"
-              placeholderTextColor={theme.colors.subtext}
-              maxLength={40}
-            />
-          </View>
+					<View style={styles.field}>
+						<Body style={styles.label}>Description (optional)</Body>
+						<TextInput
+							style={[
+								styles.input,
+								styles.multiline,
+								{ borderColor: theme.colors.border },
+							]}
+							value={description}
+							onChangeText={setDescription}
+							placeholder="A gentle stroll around the block"
+							placeholderTextColor={theme.colors.subtext}
+							maxLength={200}
+							multiline
+							numberOfLines={3}
+						/>
+					</View>
 
-          <View style={styles.field}>
-            <Body style={styles.label}>Color</Body>
-            <View style={styles.colorRow}>
-              {COLORS.map((c) => (
-                <TouchableOpacity
-                  key={c.value}
-                  style={[
-                    styles.colorChip,
-                    { backgroundColor: c.value },
-                    color === c.value && styles.colorChipSelected,
-                  ]}
-                  onPress={() => setColor(c.value)}
-                  accessibilityLabel={c.name}
-                />
-              ))}
-            </View>
-          </View>
+					<View style={styles.field}>
+						<Body style={styles.label}>Group (optional)</Body>
+						<TextInput
+							style={[styles.input, { borderColor: theme.colors.border }]}
+							value={group}
+							onChangeText={setGroup}
+							placeholder="Morning routine"
+							placeholderTextColor={theme.colors.subtext}
+							maxLength={40}
+						/>
+					</View>
 
-          <View style={styles.actions}>
-            <Button onPress={handleSave} disabled={!title.trim()}>
-              Save
-            </Button>
-          </View>
+					<View style={styles.field}>
+						<Body style={styles.label}>Color</Body>
+						<View style={styles.colorRow}>
+							{COLORS.map((c) => (
+								<TouchableOpacity
+									key={c.value}
+									style={[
+										styles.colorChip,
+										{ backgroundColor: c.value },
+										color === c.value && styles.colorChipSelected,
+									]}
+									onPress={() => setColor(c.value)}
+									accessibilityLabel={c.name}
+								/>
+							))}
+						</View>
+					</View>
 
-          <View style={styles.deleteSection}>
-            <Button onPress={handleDelete} style={styles.deleteButton}>
-              Remove Habit
-            </Button>
-          </View>
-        </Surface>
-      </ScrollView>
-    </SafeAreaView>
-  );
+					<View style={styles.actions}>
+						<Button onPress={handleSave} disabled={!title.trim()}>
+							Save
+						</Button>
+					</View>
+
+					<View style={styles.deleteSection}>
+						<Button onPress={handleDelete} style={styles.deleteButton}>
+							Remove Habit
+						</Button>
+					</View>
+				</Surface>
+			</ScrollView>
+		</SafeAreaView>
+	);
 }
 
 const styles = StyleSheet.create({
-  screen: {
-    flex: 1,
-    backgroundColor: '#f7f5f2',
-  },
-  scroll: {
-    flex: 1,
-  },
-  content: {
-    padding: 16,
-  },
-  card: {
-    gap: 20,
-  },
-  field: {
-    gap: 8,
-  },
-  label: {
-    fontWeight: '600',
-  },
-  input: {
-    borderWidth: 1,
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    backgroundColor: '#ffffff',
-  },
-  multiline: {
-    minHeight: 80,
-    textAlignVertical: 'top',
-  },
-  colorRow: {
-    flexDirection: 'row',
-    gap: 12,
-  },
-  colorChip: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    borderWidth: 2,
-    borderColor: 'transparent',
-  },
-  colorChipSelected: {
-    borderColor: '#1f2d1f',
-    borderWidth: 3,
-  },
-  actions: {
-    marginTop: 12,
-  },
-  deleteSection: {
-    marginTop: 24,
-    paddingTop: 24,
-    borderTopWidth: 1,
-    borderTopColor: '#d8e2d8',
-  },
-  deleteButton: {
-    backgroundColor: '#d88c4a',
-  },
+	screen: {
+		flex: 1,
+		backgroundColor: "#f7f5f2",
+	},
+	scroll: {
+		flex: 1,
+	},
+	content: {
+		padding: 16,
+	},
+	card: {
+		gap: 20,
+	},
+	field: {
+		gap: 8,
+	},
+	label: {
+		fontWeight: "600",
+	},
+	input: {
+		borderWidth: 1,
+		borderRadius: 8,
+		padding: 12,
+		fontSize: 16,
+		backgroundColor: "#ffffff",
+	},
+	multiline: {
+		minHeight: 80,
+		textAlignVertical: "top",
+	},
+	colorRow: {
+		flexDirection: "row",
+		gap: 12,
+	},
+	colorChip: {
+		width: 48,
+		height: 48,
+		borderRadius: 24,
+		borderWidth: 2,
+		borderColor: "transparent",
+	},
+	colorChipSelected: {
+		borderColor: "#1f2d1f",
+		borderWidth: 3,
+	},
+	actions: {
+		marginTop: 12,
+	},
+	deleteSection: {
+		marginTop: 24,
+		paddingTop: 24,
+		borderTopWidth: 1,
+		borderTopColor: "#d8e2d8",
+	},
+	deleteButton: {
+		backgroundColor: "#d88c4a",
+	},
 });

@@ -1,26 +1,27 @@
-import React from 'react';
-import { createStore } from 'tinybase';
-import { Provider, useCreateStore } from 'tinybase/ui-react';
-import { schema } from './schema';
-import { useAndStartPersister } from './persister';
-import { migrateToGroupsAndOrdering } from './migrations';
+import React from "react";
+import { createStore } from "tinybase";
+import { Provider, useCreateStore } from "tinybase/ui-react";
+import { migrateToGroupsAndOrdering } from "./migrations";
+import { useAndStartPersister } from "./persister";
+import { schema } from "./schema";
 
 export function StoreProvider({ children }: { children: React.ReactNode }) {
-  const store = useCreateStore(() => {
-    const s = createStore();
-    // Apply schema definition; using `any` to keep types minimal for MVP
-    s.setSchema(schema as any);
-    return s;
-  });
+	const store = useCreateStore(() => {
+		const s = createStore();
+		// Apply schema definition
+		// biome-ignore lint/suspicious/noExplicitAny: TinyBase schema requires any type
+		s.setSchema(schema as any);
+		return s;
+	});
 
-  // Run migration before starting persister
-  React.useEffect(() => {
-    if (store) {
-      migrateToGroupsAndOrdering(store);
-    }
-  }, [store]);
+	// Run migration before starting persister
+	React.useEffect(() => {
+		if (store) {
+			migrateToGroupsAndOrdering(store);
+		}
+	}, [store]);
 
-  useAndStartPersister(store);
+	useAndStartPersister(store);
 
-  return <Provider store={store}>{children}</Provider>;
+	return <Provider store={store}>{children}</Provider>;
 }
