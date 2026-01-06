@@ -6,18 +6,16 @@ import { useStore } from "tinybase/ui-react";
 import { Body, Button, Surface, Title } from "../src/components/ui";
 import { useTheme } from "../src/lib/theme";
 import {
+	type GroupedWeeklyData,
 	getWeekDaysFromMonday,
 	getWeeklyDataByGroup,
-	type HabitWithWeeklyChecks,
 } from "../src/store/selectors";
 
 export default function Weekly() {
 	const router = useRouter();
 	const store = useStore();
 	const _theme = useTheme();
-	const [groupedData, setGroupedData] = useState<
-		Map<string, HabitWithWeeklyChecks[]>
-	>(new Map());
+	const [groupedData, setGroupedData] = useState<GroupedWeeklyData[]>([]);
 	const dates = getWeekDaysFromMonday();
 
 	const loadData = useCallback(() => {
@@ -45,13 +43,7 @@ export default function Weekly() {
 		return date.toLocaleDateString("en-US", { weekday: "short" }).slice(0, 1);
 	};
 
-	const groups = Array.from(groupedData.entries()).sort((a, b) => {
-		if (a[0] === "Other") return 1;
-		if (b[0] === "Other") return -1;
-		return a[0].localeCompare(b[0]);
-	});
-
-	if (groups.length === 0) {
+	if (groupedData.length === 0) {
 		return (
 			<SafeAreaView style={styles.screen}>
 				<Surface style={styles.card}>
@@ -83,9 +75,9 @@ export default function Weekly() {
 				</View>
 
 				{/* Grouped habits */}
-				{groups.map(([groupName, habits]) => (
-					<View key={groupName} style={styles.groupSection}>
-						<Body style={styles.groupTitle}>{groupName}</Body>
+				{groupedData.map(({ groupTitle, habits }) => (
+					<View key={groupTitle} style={styles.groupSection}>
+						<Body style={styles.groupTitle}>{groupTitle}</Body>
 						{habits.map((item) => (
 							<Surface key={item.habit.id} style={styles.habitRow}>
 								<View style={styles.habitNameColumn}>

@@ -1,5 +1,5 @@
 import type { Store } from "tinybase";
-import type { HabitGroupRow } from "./types";
+import type { HabitGroupRow, HabitRow } from "./types";
 
 function generateId(): string {
 	return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
@@ -109,4 +109,19 @@ export function resequenceGroupOrders(store: Store): void {
 	groups.forEach((g, index) => {
 		store.setCell("habitGroups", g.id, "order", index * 10);
 	});
+}
+
+/**
+ * Find an existing group by trimmed, case-insensitive title
+ */
+export function findHabitGroupByTitle(
+	store: Store,
+	title: string,
+): HabitGroupRow | undefined {
+	const target = title.trim().toLowerCase();
+	if (!target) return undefined;
+
+	return (Object.values(store.getTable("habitGroups")) as HabitGroupRow[]).find(
+		(g) => g.title.trim().toLowerCase() === target,
+	);
 }

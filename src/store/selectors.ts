@@ -86,29 +86,59 @@ export function getWeeklyData(store: Store): HabitWithWeeklyChecks[] {
 	});
 }
 
-export function getWeeklyDataByGroup(
-	store: Store,
-): Map<string, HabitWithWeeklyChecks[]> {
-	const weeklyData = getWeeklyData(store);
-	const grouped = new Map<string, HabitWithWeeklyChecks[]>();
-	const groupsTable = store.getTable("habitGroups");
+export type GroupedWeeklyData = {
+	groupTitle: string;
+	habits: HabitWithWeeklyChecks[];
+};
 
-	weeklyData.forEach((item) => {
-		const groupId = item.habit.groupId;
-		let groupKey = "Ungrouped";
+export function getWeeklyDataByGroup(store: Store): GroupedWeeklyData[] {
+	const groups = getOrderedGroups(store);
+	const now = new Date();
+	const result: GroupedWeeklyData[] = [];
 
-		if (groupId) {
-			const group = groupsTable[groupId] as HabitGroupRow | undefined;
-			groupKey = group?.title || "Other";
+	// Add each group with its weekly data
+	groups.forEach((group) => {
+		const groupHabits = getOrderedHabits(store).filter(
+			(h) => h.groupId === group.id,
+		);
+		if (groupHabits.length > 0) {
+			const habitsWithWeeklyChecks = groupHabits.map((habit) => {
+				const weeklyChecks = getWeeklyChecks(store, habit.id, now);
+				const completedCount = weeklyChecks.filter((c) => c.completed).length;
+
+				return {
+					habit,
+					checks: weeklyChecks.map((c) => ({
+						date: c.date,
+						completed: c.completed,
+					})),
+					completedCount,
+				};
+			});
+			result.push({ groupTitle: group.title, habits: habitsWithWeeklyChecks });
 		}
-
-		if (!grouped.has(groupKey)) {
-			grouped.set(groupKey, []);
-		}
-		grouped.get(groupKey)?.push(item);
 	});
 
-	return grouped;
+	// Add ungrouped bucket if there are ungrouped habits
+	const ungroupedHabits = getOrderedHabits(store).filter((h) => !h.groupId);
+	if (ungroupedHabits.length > 0) {
+		const habitsWithWeeklyChecks = ungroupedHabits.map((habit) => {
+			const weeklyChecks = getWeeklyChecks(store, habit.id, now);
+			const completedCount = weeklyChecks.filter((c) => c.completed).length;
+
+			return {
+				habit,
+				checks: weeklyChecks.map((c) => ({
+					date: c.date,
+					completed: c.completed,
+				})),
+				completedCount,
+			};
+		});
+		result.push({ groupTitle: "Ungrouped", habits: habitsWithWeeklyChecks });
+	}
+
+	return result;
 }
 
 // Returns the current week (Monday through Sunday) based on the provided date

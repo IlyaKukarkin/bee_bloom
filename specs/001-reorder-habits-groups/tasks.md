@@ -67,7 +67,7 @@ description: "Tasks for habit and group reordering"
 ### Implementation for User Story 2
 
 - [X] T011 [P] [US2] Add group reorder helper (move + resequence) for `habitGroups` in `src/store/groups.ts`.
-- [ ] T012 [US2] Implement group-only drag mode UI (hide habits, show groups, long-press to reorder, exit restores view) in `app/index.tsx`. **DEFERRED**: Group-only mode adds significant UI complexity; defer to post-MVP. Groups remain ordered by selectors.
+- [X] T012 [US2] Implement group-only drag mode UI (hide habits, show groups, long-press to reorder, exit restores view) in `app/index.tsx`.
 - [ ] T013 [US2] Render ordered groups (respecting `order`) in weekly view and other group renderers in `src/store/selectors.ts` and `app/weekly.tsx`. **DEFERRED**: Weekly view already uses getWeeklyDataByGroup which respects order; no additional work needed for MVP.
 
 **Checkpoint**: Groups reorder independently in group-only mode; order persists across app views.

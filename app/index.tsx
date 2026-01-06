@@ -1,6 +1,12 @@
 import { useRouter } from "expo-router";
 import React from "react";
-import { Pressable, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+	Pressable,
+	ScrollView,
+	StyleSheet,
+	TouchableOpacity,
+	View,
+} from "react-native";
 import DraggableFlatList, {
 	type RenderItemParams,
 	ScaleDecorator,
@@ -12,59 +18,78 @@ import { AnimatedCheckbox } from "../src/components/animations";
 import { Body, Button, Surface, Title } from "../src/components/ui";
 import { copy } from "../src/lib/copy";
 import { todayKey } from "../src/lib/dates";
-import { useTheme } from "../src/lib/theme";
 import { toggleDailyCheck } from "../src/store/checks";
-import { moveHabitToGroup, reorderHabitWithinGroup } from "../src/store/habits";
-import { getGroupedHabits } from "../src/store/selectors";
-import type { HabitRow } from "../src/store/types";
+import { reorderGroupList } from "../src/store/groups";
+import { reorderHabitWithinGroup } from "../src/store/habits";
+import { getGroupedHabits, getOrderedGroups } from "../src/store/selectors";
+import type { HabitGroupRow, HabitRow } from "../src/store/types";
 
 type HabitWithCheck = HabitRow & {
 	isChecked: boolean;
-	groupTitle: string | null;
+};
+
+type GroupWithHabits = {
+	group: HabitGroupRow | null;
+	habits: HabitWithCheck[];
 };
 
 export default function Home() {
 	const router = useRouter();
-	const _theme = useTheme();
 	const store = useStore();
 	const today = todayKey();
 
-	const [flatHabits, setFlatHabits] = React.useState<HabitWithCheck[]>([]);
+	const [groupedHabits, setGroupedHabits] = React.useState<GroupWithHabits[]>(
+		[],
+	);
+	const [groups, setGroups] = React.useState<HabitGroupRow[]>([]);
+	const [groupMode, setGroupMode] = React.useState(false);
 
 	const loadHabits = React.useCallback(() => {
 		if (!store) return;
 
 		const grouped = getGroupedHabits(store);
 		const checksTable = store.getTable("checks");
-		const flat: HabitWithCheck[] = [];
+		const result: GroupWithHabits[] = [];
 
 		grouped.forEach(({ group, habits }) => {
-			habits.forEach((habit) => {
+			const habitsWithChecks: HabitWithCheck[] = habits.map((habit) => {
 				const checkId = `${habit.id}:${today}`;
 				const check = checksTable?.[checkId];
-				flat.push({
+				return {
 					...habit,
 					isChecked: Boolean(check?.completed),
-					groupTitle: group?.title || null,
-				});
+				};
+			});
+
+			result.push({
+				group,
+				habits: habitsWithChecks,
 			});
 		});
 
-		setFlatHabits(flat);
+		setGroupedHabits(result);
 	}, [store, today]);
+
+	const loadGroups = React.useCallback(() => {
+		if (!store) return;
+		const orderedGroups = getOrderedGroups(store);
+		setGroups(orderedGroups);
+	}, [store]);
 
 	React.useEffect(() => {
 		loadHabits();
+		loadGroups();
 		if (!store) return;
 
 		const listenerId = store.addTablesListener(() => {
 			loadHabits();
+			loadGroups();
 		});
 
 		return () => {
 			store.delListener(listenerId);
 		};
-	}, [store, loadHabits]);
+	}, [store, loadHabits, loadGroups]);
 
 	const handleToggle = (habitId: string) => {
 		if (!store) return;
@@ -75,97 +100,146 @@ export default function Home() {
 		router.push({ pathname: "/habit/[id]", params: { id: habitId } });
 	};
 
-	const handleDragEnd = ({
-		data,
-		from,
-		to,
-	}: {
-		data: HabitWithCheck[];
-		from: number;
-		to: number;
-	}) => {
+	const handleHabitDragEnd =
+		(_groupId: string | null) =>
+		({
+			data,
+			from,
+			to,
+		}: {
+			data: HabitWithCheck[];
+			from: number;
+			to: number;
+		}) => {
+			if (!store || from === to) return;
+
+			const movedHabit = data[from];
+			if (!movedHabit) return;
+
+			// Reorder within this group
+			reorderHabitWithinGroup(store, movedHabit.id, to);
+		};
+
+	const handleGroupDragEnd = ({ from, to }: { from: number; to: number }) => {
 		if (!store || from === to) return;
-
-		const movedHabit = flatHabits[from];
-		const targetHabit = data[to];
-
-		// Cross-group move
-		if (movedHabit.groupId !== targetHabit.groupId) {
-			const targetGroupHabits = data.filter(
-				(h) => h.groupId === targetHabit.groupId,
-			);
-			const targetIndex = targetGroupHabits.findIndex(
-				(h) => h.id === targetHabit.id,
-			);
-			moveHabitToGroup(
-				store,
-				movedHabit.id,
-				targetHabit.groupId || null,
-				targetIndex,
-			);
-		} else {
-			// Within-group reorder
-			const groupHabits = data.filter((h) => h.groupId === movedHabit.groupId);
-			const targetIndex = groupHabits.findIndex((h) => h.id === targetHabit.id);
-			reorderHabitWithinGroup(store, movedHabit.id, targetIndex);
-		}
+		const movedGroup = groups[from];
+		if (!movedGroup) return;
+		reorderGroupList(store, movedGroup.id, to);
 	};
 
-	const renderItem = ({
+	const handleEnterGroupMode = () => {
+		setGroupMode(true);
+	};
+
+	const handleExitGroupMode = () => {
+		setGroupMode(false);
+	};
+
+	const renderHabitItem = ({
 		item,
 		drag,
 		isActive,
 	}: RenderItemParams<HabitWithCheck>) => {
-		const index = flatHabits.findIndex((h) => h.id === item.id);
-		const showGroupHeader =
-			index === 0 || flatHabits[index - 1]?.groupTitle !== item.groupTitle;
-
 		return (
 			<ScaleDecorator>
-				<View>
-					{showGroupHeader && (
-						<Body muted style={styles.groupHeader}>
-							{item.groupTitle || "Ungrouped"}
-						</Body>
-					)}
-					<Surface style={[styles.habitRow, isActive && styles.habitRowActive]}>
-						<Pressable
-							style={styles.habitContent}
-							onPress={() => handleEdit(item.id)}
-							onLongPress={drag}
+				<Surface style={[styles.habitRow, isActive && styles.habitRowActive]}>
+					<Pressable
+						style={styles.habitContent}
+						onPress={() => handleEdit(item.id)}
+						onLongPress={drag}
+					>
+						<View style={[styles.colorDot, { backgroundColor: item.color }]} />
+						<View style={styles.habitText}>
+							<Body style={styles.habitTitle}>{item.title}</Body>
+							{item.description && (
+								<Body muted style={styles.habitDescription}>
+									{item.description}
+								</Body>
+							)}
+						</View>
+					</Pressable>
+					<AnimatedCheckbox isChecked={item.isChecked}>
+						<TouchableOpacity
+							style={[
+								styles.checkbox,
+								{ borderColor: item.color },
+								item.isChecked && { backgroundColor: item.color },
+							]}
+							onPress={() => handleToggle(item.id)}
+							accessibilityLabel={item.isChecked ? "Uncheck" : "Check"}
 						>
-							<View
-								style={[styles.colorDot, { backgroundColor: item.color }]}
-							/>
-							<View style={styles.habitText}>
-								<Body style={styles.habitTitle}>{item.title}</Body>
-								{item.description && (
-									<Body muted style={styles.habitDescription}>
-										{item.description}
-									</Body>
-								)}
-							</View>
-						</Pressable>
-						<AnimatedCheckbox isChecked={item.isChecked}>
-							<TouchableOpacity
-								style={[
-									styles.checkbox,
-									{ borderColor: item.color },
-									item.isChecked && { backgroundColor: item.color },
-								]}
-								onPress={() => handleToggle(item.id)}
-								accessibilityLabel={item.isChecked ? "Uncheck" : "Check"}
-							>
-								{item.isChecked && <Body style={styles.checkmark}>✓</Body>}
-							</TouchableOpacity>
-						</AnimatedCheckbox>
-					</Surface>
-				</View>
+							{item.isChecked && <Body style={styles.checkmark}>✓</Body>}
+						</TouchableOpacity>
+					</AnimatedCheckbox>
+				</Surface>
 			</ScaleDecorator>
 		);
 	};
 
-	if (flatHabits.length === 0) {
+	const renderGroupItem = ({
+		item,
+		drag,
+		isActive,
+	}: RenderItemParams<HabitGroupRow>) => {
+		return (
+			<ScaleDecorator>
+				<Surface style={[styles.habitRow, isActive && styles.habitRowActive]}>
+					<Pressable
+						style={styles.habitContent}
+						onLongPress={drag}
+						accessibilityLabel={`Drag group ${item.title}`}
+					>
+						<View
+							style={[
+								styles.colorDot,
+								{ backgroundColor: item.color || "#6b7280" },
+							]}
+						/>
+						<View style={styles.habitText}>
+							<Body style={styles.habitTitle}>{item.title}</Body>
+							<Body muted style={styles.groupModeSubtext}>
+								Hold to drag groups
+							</Body>
+						</View>
+					</Pressable>
+				</Surface>
+			</ScaleDecorator>
+		);
+	};
+
+	if (groupMode) {
+		return (
+			<GestureHandlerRootView style={{ flex: 1 }}>
+				<SafeAreaView style={styles.screen}>
+					<View style={styles.header}>
+						<Title>Groups</Title>
+						<Button onPress={handleExitGroupMode} style={styles.addButton}>
+							Done
+						</Button>
+					</View>
+					<Body muted style={styles.groupModeHint}>
+						Drag to reorder groups. Habits are hidden in this mode.
+					</Body>
+					{groups.length === 0 ? (
+						<Surface style={styles.card}>
+							<Body muted>No groups yet. Create one to reorder.</Body>
+							<Button onPress={handleExitGroupMode}>Back</Button>
+						</Surface>
+					) : (
+						<DraggableFlatList
+							data={groups}
+							keyExtractor={(item) => item.id}
+							renderItem={renderGroupItem}
+							onDragEnd={handleGroupDragEnd}
+							contentContainerStyle={styles.list}
+						/>
+					)}
+				</SafeAreaView>
+			</GestureHandlerRootView>
+		);
+	}
+
+	if (groupedHabits.length === 0) {
 		return (
 			<GestureHandlerRootView style={{ flex: 1 }}>
 				<SafeAreaView style={styles.screen}>
@@ -194,13 +268,30 @@ export default function Home() {
 					</Button>
 				</View>
 
-				<DraggableFlatList
-					data={flatHabits}
-					keyExtractor={(item) => item.id}
-					renderItem={renderItem}
-					onDragEnd={handleDragEnd}
-					contentContainerStyle={styles.list}
-				/>
+				<ScrollView
+					style={styles.scrollView}
+					contentContainerStyle={styles.scrollContent}
+				>
+					{groupedHabits.map(({ group, habits }) => (
+						<View key={group?.id || "ungrouped"} style={styles.groupContainer}>
+							<Pressable onLongPress={handleEnterGroupMode}>
+								<Body muted style={styles.groupHeader}>
+									{group?.title || "Ungrouped"}
+								</Body>
+							</Pressable>
+							<DraggableFlatList
+								data={habits}
+								keyExtractor={(item) => item.id}
+								renderItem={renderHabitItem}
+								onDragEnd={handleHabitDragEnd(group?.id || null)}
+								ItemSeparatorComponent={() => (
+									<View style={styles.habitSeparator} />
+								)}
+								scrollEnabled={false}
+							/>
+						</View>
+					))}
+				</ScrollView>
 			</SafeAreaView>
 		</GestureHandlerRootView>
 	);
@@ -222,6 +313,21 @@ const styles = StyleSheet.create({
 		paddingHorizontal: 16,
 		paddingVertical: 8,
 	},
+	scrollView: {
+		flex: 1,
+		overflow: "visible",
+	},
+	scrollContent: {
+		padding: 16,
+		overflow: "visible",
+	},
+	groupContainer: {
+		marginBottom: 24,
+		overflow: "visible",
+	},
+	habitSeparator: {
+		height: 12,
+	},
 	list: {
 		padding: 16,
 		gap: 12,
@@ -230,12 +336,17 @@ const styles = StyleSheet.create({
 		gap: 12,
 		margin: 16,
 	},
+	groupModeHint: {
+		paddingHorizontal: 16,
+		paddingBottom: 8,
+	},
 	habitRow: {
 		flexDirection: "row",
 		alignItems: "center",
 		justifyContent: "space-between",
 		padding: 16,
 		gap: 12,
+		overflow: "visible",
 	},
 	habitContent: {
 		flex: 1,
@@ -258,6 +369,9 @@ const styles = StyleSheet.create({
 	habitDescription: {
 		fontSize: 14,
 	},
+	groupModeSubtext: {
+		fontSize: 12,
+	},
 	groupHeader: {
 		fontSize: 14,
 		fontWeight: "600",
@@ -268,8 +382,12 @@ const styles = StyleSheet.create({
 		letterSpacing: 0.5,
 	},
 	habitRowActive: {
-		opacity: 0.8,
-		transform: [{ scale: 1.02 }],
+		opacity: 0.95,
+		elevation: 4,
+		shadowColor: "#000",
+		shadowOffset: { width: 0, height: 2 },
+		shadowOpacity: 0.2,
+		shadowRadius: 4,
 	},
 	checkbox: {
 		width: 32,

@@ -1,4 +1,5 @@
 import type { Store } from "tinybase";
+import { createHabitGroup, findHabitGroupByTitle } from "./groups";
 import type { HabitRow } from "./types";
 
 // Default colors from garden-tone palette
@@ -18,10 +19,41 @@ function getDefaultColor(index: number): string {
 	return DEFAULT_COLORS[index % DEFAULT_COLORS.length];
 }
 
-export function createHabit(
+type HabitCreateInput = {
+	title: string;
+	description: string | null;
+	color?: string | null;
+	groupId?: string | null;
+	group?: string | null;
+};
+
+type HabitUpdateInput = Partial<
+	Pick<HabitRow, "title" | "description" | "color" | "groupId">
+> & { group?: string | null };
+
+function resolveGroupId(
 	store: Store,
-	habit: Omit<HabitRow, "id" | "createdAt" | "deletedAt" | "order">,
-): string {
+	groupId?: string | null,
+	groupTitle?: string | null,
+): string | null | undefined {
+	if (groupTitle !== undefined) {
+		const trimmed = groupTitle?.trim() || "";
+		if (!trimmed) return null;
+
+		const existing = findHabitGroupByTitle(store, trimmed);
+		if (existing) return existing.id;
+
+		return createHabitGroup(store, { title: trimmed, color: null });
+	}
+
+	if (groupId !== undefined) {
+		return groupId?.trim() || null;
+	}
+
+	return undefined;
+}
+
+export function createHabit(store: Store, habit: HabitCreateInput): string {
 	const id = generateId();
 	const createdAt = new Date().toISOString();
 
@@ -33,8 +65,8 @@ export function createHabit(
 
 	const color = habit.color || getDefaultColor(habitCount);
 
-	// Calculate next order within target group
-	const groupId = habit.groupId?.trim() || null;
+	// Calculate next order within target group (auto-create if group title provided)
+	const groupId = resolveGroupId(store, habit.groupId, habit.group) ?? null;
 	const groupHabits = (
 		Object.values(store.getTable("habits")) as HabitRow[]
 	).filter((h) => h.groupId === groupId && !h.deletedAt);
@@ -60,9 +92,7 @@ export function createHabit(
 export function updateHabit(
 	store: Store,
 	id: string,
-	updates: Partial<
-		Pick<HabitRow, "title" | "description" | "color" | "groupId">
-	>,
+	updates: HabitUpdateInput,
 ): void {
 	const existing = store.getRow("habits", id);
 	if (!existing || existing.deletedAt) {
@@ -79,11 +109,23 @@ export function updateHabit(
 	if (updates.color !== undefined) {
 		newRow.color = updates.color;
 	}
-	if (updates.groupId !== undefined) {
-		newRow.groupId = updates.groupId?.trim() || null;
+
+	const resolvedGroupId = resolveGroupId(store, updates.groupId, updates.group);
+	const groupChanged = resolvedGroupId !== undefined;
+
+	if (Object.keys(newRow).length > 0) {
+		store.setPartialRow("habits", id, newRow);
 	}
 
-	store.setPartialRow("habits", id, newRow);
+	if (groupChanged) {
+		const targetGroupId = resolvedGroupId ?? null;
+		const targetGroupHabits = (
+			Object.values(store.getTable("habits")) as HabitRow[]
+		).filter((h) => h.groupId === targetGroupId && !h.deletedAt && h.id !== id);
+
+		// Place at end of target group and compact source group via move helper
+		moveHabitToGroup(store, id, targetGroupId, targetGroupHabits.length);
+	}
 }
 
 export function deleteHabit(store: Store, id: string): void {

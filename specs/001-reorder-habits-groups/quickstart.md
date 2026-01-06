@@ -30,8 +30,8 @@
 - [X] Ungrouped habits can move into a group and back to ungrouped bucket.
 - [X] Migration: existing habits show under correct groups with initial order; no crashes on first launch.
 
-### US2: Group Reordering (DEFERRED to post-MVP)
-- [ ] Long-press group to enter group-only mode; reorder; exit; reload; order persists. **DEFERRED**: Group-only mode UI requires additional complexity; deferred per MVP scope constraints.
+### US2: Group Reordering
+- [X] Long-press group to enter group-only mode; reorder; exit; reload; order persists.
 
 ### US3: Drag Feedback (COMPLETE via library defaults)
 - [X] Drag ghost/placeholder visible during drag (ScaleDecorator + activeOpacity).

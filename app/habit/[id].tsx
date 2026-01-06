@@ -48,7 +48,14 @@ export default function EditHabit() {
 		setTitle(habit.title);
 		setDescription(habit.description || "");
 		setColor(habit.color);
-		setGroup(habit.group || "");
+		if (habit.groupId) {
+			const group = store.getRow("habitGroups", habit.groupId) as
+				| { title?: string }
+				| undefined;
+			setGroup(group?.title || "");
+		} else {
+			setGroup("");
+		}
 		setLoaded(true);
 	}, [habitId, store, router.back]);
 
