@@ -53,9 +53,11 @@ export function AnimatedCheckbox({
 	isChecked,
 }: AnimatedCheckboxProps) {
 	const scaleAnim = useRef(new Animated.Value(1)).current;
+	const prevChecked = useRef(isChecked);
 
 	useEffect(() => {
-		if (isChecked) {
+		// Only animate on transition from unchecked to checked
+		if (isChecked && !prevChecked.current) {
 			Animated.sequence([
 				Animated.timing(scaleAnim, {
 					toValue: 1.2,
@@ -69,6 +71,7 @@ export function AnimatedCheckbox({
 				}),
 			]).start();
 		}
+		prevChecked.current = isChecked;
 	}, [isChecked, scaleAnim]);
 
 	return (

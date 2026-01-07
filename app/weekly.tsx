@@ -1,10 +1,9 @@
-import { useRouter } from "expo-router";
+import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useStore } from "tinybase/ui-react";
 import { Body, Button, Surface, Title } from "../src/components/ui";
-import { useTheme } from "../src/lib/theme";
 import {
 	type GroupedWeeklyData,
 	getWeekDaysFromMonday,
@@ -14,7 +13,6 @@ import {
 export default function Weekly() {
 	const router = useRouter();
 	const store = useStore();
-	const _theme = useTheme();
 	const [groupedData, setGroupedData] = useState<GroupedWeeklyData[]>([]);
 	const dates = getWeekDaysFromMonday();
 
@@ -23,6 +21,12 @@ export default function Weekly() {
 		const data = getWeeklyDataByGroup(store);
 		setGroupedData(data);
 	}, [store]);
+
+	useFocusEffect(
+		useCallback(() => {
+			loadData();
+		}, [loadData]),
+	);
 
 	useEffect(() => {
 		loadData();

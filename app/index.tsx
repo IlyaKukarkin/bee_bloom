@@ -1,6 +1,8 @@
+import * as Haptics from "expo-haptics";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
+	Animated,
 	Pressable,
 	ScrollView,
 	StyleSheet,
@@ -9,7 +11,6 @@ import {
 } from "react-native";
 import DraggableFlatList, {
 	type RenderItemParams,
-	ScaleDecorator,
 } from "react-native-draggable-flatlist";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -93,7 +94,13 @@ export default function Home() {
 
 	const handleToggle = (habitId: string) => {
 		if (!store) return;
-		toggleDailyCheck(store, habitId, today);
+
+		const isNowChecked = toggleDailyCheck(store, habitId, today);
+
+		// Haptic feedback only when checking (not unchecking)
+		if (isNowChecked) {
+			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+		}
 	};
 
 	const handleEdit = (habitId: string) => {
@@ -101,7 +108,7 @@ export default function Home() {
 	};
 
 	const handleHabitDragEnd =
-		(_groupId: string | null) =>
+		(groupId: string | null) =>
 		({
 			data,
 			from,
@@ -113,10 +120,20 @@ export default function Home() {
 		}) => {
 			if (!store || from === to) return;
 
-			const movedHabit = data[from];
+			// data is the new visual order, movedHabit is at its new position
+			const movedHabit = data[to];
 			if (!movedHabit) return;
 
-			// Reorder within this group
+			// Update local state immediately for responsive UI
+			setGroupedHabits((prev) =>
+				prev.map((entry) => {
+					const entryId = entry.group?.id || null;
+					if (entryId !== groupId) return entry;
+					return { ...entry, habits: data };
+				}),
+			);
+
+			// Persist to store - 'to' is the new order value
 			reorderHabitWithinGroup(store, movedHabit.id, to);
 		};
 
@@ -135,14 +152,38 @@ export default function Home() {
 		setGroupMode(false);
 	};
 
-	const renderHabitItem = ({
+	const AnimatedHabitItem = ({
 		item,
 		drag,
 		isActive,
 	}: RenderItemParams<HabitWithCheck>) => {
+		const pulseAnim = React.useRef(new Animated.Value(1)).current;
+
+		React.useEffect(() => {
+			if (isActive) {
+				const pulse = Animated.loop(
+					Animated.sequence([
+						Animated.timing(pulseAnim, {
+							toValue: 0.6,
+							duration: 500,
+							useNativeDriver: true,
+						}),
+						Animated.timing(pulseAnim, {
+							toValue: 1,
+							duration: 500,
+							useNativeDriver: true,
+						}),
+					]),
+				);
+				pulse.start();
+				return () => pulse.stop();
+			}
+			pulseAnim.setValue(1);
+		}, [isActive, pulseAnim]);
+
 		return (
-			<ScaleDecorator>
-				<Surface style={[styles.habitRow, isActive && styles.habitRowActive]}>
+			<Animated.View style={{ opacity: isActive ? pulseAnim : 1 }}>
+				<Surface style={styles.habitRow}>
 					<Pressable
 						style={styles.habitContent}
 						onPress={() => handleEdit(item.id)}
@@ -172,18 +213,46 @@ export default function Home() {
 						</TouchableOpacity>
 					</AnimatedCheckbox>
 				</Surface>
-			</ScaleDecorator>
+			</Animated.View>
 		);
 	};
 
-	const renderGroupItem = ({
+	const renderHabitItem = (params: RenderItemParams<HabitWithCheck>) => {
+		return <AnimatedHabitItem {...params} />;
+	};
+
+	const AnimatedGroupItem = ({
 		item,
 		drag,
 		isActive,
 	}: RenderItemParams<HabitGroupRow>) => {
+		const pulseAnim = React.useRef(new Animated.Value(1)).current;
+
+		React.useEffect(() => {
+			if (isActive) {
+				const pulse = Animated.loop(
+					Animated.sequence([
+						Animated.timing(pulseAnim, {
+							toValue: 0.6,
+							duration: 500,
+							useNativeDriver: true,
+						}),
+						Animated.timing(pulseAnim, {
+							toValue: 1,
+							duration: 500,
+							useNativeDriver: true,
+						}),
+					]),
+				);
+				pulse.start();
+				return () => pulse.stop();
+			}
+			pulseAnim.setValue(1);
+		}, [isActive, pulseAnim]);
+
 		return (
-			<ScaleDecorator>
-				<Surface style={[styles.habitRow, isActive && styles.habitRowActive]}>
+			<Animated.View style={{ opacity: isActive ? pulseAnim : 1 }}>
+				<Surface style={styles.habitRow}>
 					<Pressable
 						style={styles.habitContent}
 						onLongPress={drag}
@@ -203,8 +272,12 @@ export default function Home() {
 						</View>
 					</Pressable>
 				</Surface>
-			</ScaleDecorator>
+			</Animated.View>
 		);
+	};
+
+	const renderGroupItem = (params: RenderItemParams<HabitGroupRow>) => {
+		return <AnimatedGroupItem {...params} />;
 	};
 
 	if (groupMode) {
@@ -230,7 +303,13 @@ export default function Home() {
 							data={groups}
 							keyExtractor={(item) => item.id}
 							renderItem={renderGroupItem}
-							onDragEnd={handleGroupDragEnd}
+							onDragBegin={() =>
+								Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+							}
+							onDragEnd={(params) => {
+								Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+								handleGroupDragEnd(params);
+							}}
 							contentContainerStyle={styles.list}
 						/>
 					)}
@@ -283,10 +362,18 @@ export default function Home() {
 								data={habits}
 								keyExtractor={(item) => item.id}
 								renderItem={renderHabitItem}
-								onDragEnd={handleHabitDragEnd(group?.id || null)}
+								extraData={habits}
+								onDragBegin={() =>
+									Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
+								}
+								onDragEnd={(params) => {
+									Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+									handleHabitDragEnd(group?.id || null)(params);
+								}}
 								ItemSeparatorComponent={() => (
 									<View style={styles.habitSeparator} />
 								)}
+								ListFooterComponent={<View style={styles.habitSeparator} />}
 								scrollEnabled={false}
 							/>
 						</View>
@@ -381,14 +468,7 @@ const styles = StyleSheet.create({
 		textTransform: "uppercase",
 		letterSpacing: 0.5,
 	},
-	habitRowActive: {
-		opacity: 0.95,
-		elevation: 4,
-		shadowColor: "#000",
-		shadowOffset: { width: 0, height: 2 },
-		shadowOpacity: 0.2,
-		shadowRadius: 4,
-	},
+
 	checkbox: {
 		width: 32,
 		height: 32,
