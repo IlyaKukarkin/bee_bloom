@@ -86,7 +86,9 @@ export function reorderGroupList(
 	groupId: string,
 	targetIndex: number,
 ): void {
-	const group = store.getRow("habitGroups", groupId);
+	const group = store.getRow("habitGroups", groupId) as
+		| HabitGroupRow
+		| undefined;
 	if (!group) {
 		throw new Error(`HabitGroup ${groupId} not found`);
 	}

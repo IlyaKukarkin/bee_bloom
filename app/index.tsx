@@ -34,6 +34,133 @@ type GroupWithHabits = {
 	habits: HabitWithCheck[];
 };
 
+type AnimatedHabitItemProps = RenderItemParams<HabitWithCheck> & {
+	onEdit: (id: string) => void;
+	onToggle: (id: string) => void;
+};
+
+const AnimatedHabitItem = React.memo(function AnimatedHabitItem({
+	item,
+	drag,
+	isActive,
+	onEdit,
+	onToggle,
+}: AnimatedHabitItemProps) {
+	const pulseAnim = React.useRef(new Animated.Value(1)).current;
+
+	React.useEffect(() => {
+		if (isActive) {
+			const pulse = Animated.loop(
+				Animated.sequence([
+					Animated.timing(pulseAnim, {
+						toValue: 0.6,
+						duration: 500,
+						useNativeDriver: true,
+					}),
+					Animated.timing(pulseAnim, {
+						toValue: 1,
+						duration: 500,
+						useNativeDriver: true,
+					}),
+				]),
+			);
+			pulse.start();
+			return () => pulse.stop();
+		}
+		pulseAnim.setValue(1);
+	}, [isActive, pulseAnim]);
+
+	return (
+		<Animated.View style={{ opacity: isActive ? pulseAnim : 1 }}>
+			<Surface style={styles.habitRow}>
+				<Pressable
+					style={styles.habitContent}
+					onPress={() => onEdit(item.id)}
+					onLongPress={drag}
+				>
+					<View style={[styles.colorDot, { backgroundColor: item.color }]} />
+					<View style={styles.habitText}>
+						<Body style={styles.habitTitle}>{item.title}</Body>
+						{item.description && (
+							<Body muted style={styles.habitDescription}>
+								{item.description}
+							</Body>
+						)}
+					</View>
+				</Pressable>
+				<AnimatedCheckbox isChecked={item.isChecked}>
+					<TouchableOpacity
+						style={[
+							styles.checkbox,
+							{ borderColor: item.color },
+							item.isChecked && { backgroundColor: item.color },
+						]}
+						onPress={() => onToggle(item.id)}
+						accessibilityLabel={item.isChecked ? "Uncheck" : "Check"}
+					>
+						{item.isChecked && <Body style={styles.checkmark}>✓</Body>}
+					</TouchableOpacity>
+				</AnimatedCheckbox>
+			</Surface>
+		</Animated.View>
+	);
+});
+
+const AnimatedGroupItem = React.memo(function AnimatedGroupItem({
+	item,
+	drag,
+	isActive,
+}: RenderItemParams<HabitGroupRow>) {
+	const pulseAnim = React.useRef(new Animated.Value(1)).current;
+
+	React.useEffect(() => {
+		if (isActive) {
+			const pulse = Animated.loop(
+				Animated.sequence([
+					Animated.timing(pulseAnim, {
+						toValue: 0.6,
+						duration: 500,
+						useNativeDriver: true,
+					}),
+					Animated.timing(pulseAnim, {
+						toValue: 1,
+						duration: 500,
+						useNativeDriver: true,
+					}),
+				]),
+			);
+			pulse.start();
+			return () => pulse.stop();
+		}
+		pulseAnim.setValue(1);
+	}, [isActive, pulseAnim]);
+
+	return (
+		<Animated.View style={{ opacity: isActive ? pulseAnim : 1 }}>
+			<Surface style={styles.habitRow}>
+				<Pressable
+					style={styles.habitContent}
+					onLongPress={drag}
+					accessibilityLabel={`Drag group ${item.title}`}
+				>
+					<View
+						style={[
+							styles.colorDot,
+							{ backgroundColor: item.color || "#6b7280" },
+						]}
+					/>
+					<View style={styles.habitText}>
+						<Body style={styles.habitTitle}>{item.title}</Body>
+						<Body muted style={styles.groupModeSubtext}>
+							Hold to drag groups
+						</Body>
+					</View>
+				</Pressable>
+			</Surface>
+		</Animated.View>
+	);
+});
+
 export default function Home() {
 	const router = useRouter();
 	const store = useStore();
@@ -92,20 +219,26 @@ export default function Home() {
 		};
 	}, [store, loadHabits, loadGroups]);
 
-	const handleToggle = (habitId: string) => {
-		if (!store) return;
+	const handleToggle = React.useCallback(
+		(habitId: string) => {
+			if (!store) return;
 
-		const isNowChecked = toggleDailyCheck(store, habitId, today);
+			const isNowChecked = toggleDailyCheck(store, habitId, today);
 
-		// Haptic feedback only when checking (not unchecking)
-		if (isNowChecked) {
-			Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-		}
-	};
+			// Haptic feedback only when checking (not unchecking)
+			if (isNowChecked) {
+				Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+			}
+		},
+		[store, today],
+	);
 
-	const handleEdit = (habitId: string) => {
-		router.push({ pathname: "/habit/[id]", params: { id: habitId } });
-	};
+	const handleEdit = React.useCallback(
+		(habitId: string) => {
+			router.push({ pathname: "/habit/[id]", params: { id: habitId } });
+		},
+		[router],
+	);
 
 	const handleHabitDragEnd =
 		(groupId: string | null) =>
@@ -162,133 +295,23 @@ export default function Home() {
 		setGroupMode(false);
 	};
 
-	const AnimatedHabitItem = ({
-		item,
-		drag,
-		isActive,
-	}: RenderItemParams<HabitWithCheck>) => {
-		const pulseAnim = React.useRef(new Animated.Value(1)).current;
+	const renderHabitItem = React.useCallback(
+		(params: RenderItemParams<HabitWithCheck>) => (
+			<AnimatedHabitItem
+				{...params}
+				onEdit={handleEdit}
+				onToggle={handleToggle}
+			/>
+		),
+		[handleEdit, handleToggle],
+	);
 
-		React.useEffect(() => {
-			if (isActive) {
-				const pulse = Animated.loop(
-					Animated.sequence([
-						Animated.timing(pulseAnim, {
-							toValue: 0.6,
-							duration: 500,
-							useNativeDriver: true,
-						}),
-						Animated.timing(pulseAnim, {
-							toValue: 1,
-							duration: 500,
-							useNativeDriver: true,
-						}),
-					]),
-				);
-				pulse.start();
-				return () => pulse.stop();
-			}
-			pulseAnim.setValue(1);
-		}, [isActive, pulseAnim]);
-
-		return (
-			<Animated.View style={{ opacity: isActive ? pulseAnim : 1 }}>
-				<Surface style={styles.habitRow}>
-					<Pressable
-						style={styles.habitContent}
-						onPress={() => handleEdit(item.id)}
-						onLongPress={drag}
-					>
-						<View style={[styles.colorDot, { backgroundColor: item.color }]} />
-						<View style={styles.habitText}>
-							<Body style={styles.habitTitle}>{item.title}</Body>
-							{item.description && (
-								<Body muted style={styles.habitDescription}>
-									{item.description}
-								</Body>
-							)}
-						</View>
-					</Pressable>
-					<AnimatedCheckbox isChecked={item.isChecked}>
-						<TouchableOpacity
-							style={[
-								styles.checkbox,
-								{ borderColor: item.color },
-								item.isChecked && { backgroundColor: item.color },
-							]}
-							onPress={() => handleToggle(item.id)}
-							accessibilityLabel={item.isChecked ? "Uncheck" : "Check"}
-						>
-							{item.isChecked && <Body style={styles.checkmark}>✓</Body>}
-						</TouchableOpacity>
-					</AnimatedCheckbox>
-				</Surface>
-			</Animated.View>
-		);
-	};
-
-	const renderHabitItem = (params: RenderItemParams<HabitWithCheck>) => {
-		return <AnimatedHabitItem {...params} />;
-	};
-
-	const AnimatedGroupItem = ({
-		item,
-		drag,
-		isActive,
-	}: RenderItemParams<HabitGroupRow>) => {
-		const pulseAnim = React.useRef(new Animated.Value(1)).current;
-
-		React.useEffect(() => {
-			if (isActive) {
-				const pulse = Animated.loop(
-					Animated.sequence([
-						Animated.timing(pulseAnim, {
-							toValue: 0.6,
-							duration: 500,
-							useNativeDriver: true,
-						}),
-						Animated.timing(pulseAnim, {
-							toValue: 1,
-							duration: 500,
-							useNativeDriver: true,
-						}),
-					]),
-				);
-				pulse.start();
-				return () => pulse.stop();
-			}
-			pulseAnim.setValue(1);
-		}, [isActive, pulseAnim]);
-
-		return (
-			<Animated.View style={{ opacity: isActive ? pulseAnim : 1 }}>
-				<Surface style={styles.habitRow}>
-					<Pressable
-						style={styles.habitContent}
-						onLongPress={drag}
-						accessibilityLabel={`Drag group ${item.title}`}
-					>
-						<View
-							style={[
-								styles.colorDot,
-								{ backgroundColor: item.color || "#6b7280" },
-							]}
-						/>
-						<View style={styles.habitText}>
-							<Body style={styles.habitTitle}>{item.title}</Body>
-							<Body muted style={styles.groupModeSubtext}>
-								Hold to drag groups
-							</Body>
-						</View>
-					</Pressable>
-				</Surface>
-			</Animated.View>
-		);
-	};
-
-	const renderGroupItem = (params: RenderItemParams<HabitGroupRow>) => {
-		return <AnimatedGroupItem {...params} />;
-	};
+	const renderGroupItem = React.useCallback(
+		(params: RenderItemParams<HabitGroupRow>) => (
+			<AnimatedGroupItem {...params} />
+		),
+		[],
+	);
 
 	if (groupMode) {
 		return (
