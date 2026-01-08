@@ -71,7 +71,7 @@ const AnimatedHabitItem = React.memo(function AnimatedHabitItem({
 	}, [isActive, pulseAnim]);
 
 	return (
-		<Animated.View style={{ opacity: isActive ? pulseAnim : 1 }}>
+		<Animated.View style={{ opacity: pulseAnim }}>
 			<Surface style={styles.habitRow}>
 				<Pressable
 					style={styles.habitContent}
@@ -136,7 +136,7 @@ const AnimatedGroupItem = React.memo(function AnimatedGroupItem({
 	}, [isActive, pulseAnim]);
 
 	return (
-		<Animated.View style={{ opacity: isActive ? pulseAnim : 1 }}>
+		<Animated.View style={{ opacity: pulseAnim }}>
 			<Surface style={styles.habitRow}>
 				<Pressable
 					style={styles.habitContent}
@@ -257,16 +257,7 @@ export default function Home() {
 			const movedHabit = data[to];
 			if (!movedHabit) return;
 
-			// Update local state immediately for responsive UI
-			setGroupedHabits((prev) =>
-				prev.map((entry) => {
-					const entryId = entry.group?.id || null;
-					if (entryId !== groupId) return entry;
-					return { ...entry, habits: data };
-				}),
-			);
-
-			// Persist to store - 'to' is the new order value
+			// Persist to store - the listener will update UI
 			reorderHabitWithinGroup(store, movedHabit.id, to);
 		};
 
@@ -283,7 +274,7 @@ export default function Home() {
 		const movedGroup = data[to];
 		if (!movedGroup) return;
 
-		setGroups(data);
+		// Persist to store - the listener will update UI
 		reorderGroupList(store, movedGroup.id, to);
 	};
 
