@@ -1,0 +1,144 @@
+openapi: 3.1.0
+info:
+  title: Habit and Group Reordering (Local)
+  version: 0.1.0
+  description: Local-only contract for ordering operations within the Expo app (Tinybase-backed).
+servers:
+  - url: local
+paths:
+  /habits/{habitId}/reorder:
+    post:
+      summary: Move a habit within its group or into another group at a specific position
+      operationId: reorderHabit
+      parameters:
+        - name: habitId
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [targetIndex]
+              properties:
+                targetGroupId:
+                  type: string
+                  nullable: true
+                  description: New group id; null keeps ungrouped
+                targetIndex:
+                  type: integer
+                  minimum: 0
+                  description: Zero-based index within the target group after move
+      responses:
+        '200':
+          description: Habit reordered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/HabitOrderState'
+
+  /groups/reorder:
+    post:
+      summary: Reorder groups by moving one group to a new position
+      operationId: reorderGroup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [groupId, targetIndex]
+              properties:
+                groupId:
+                  type: string
+                targetIndex:
+                  type: integer
+                  minimum: 0
+      responses:
+        '200':
+          description: Groups reordered
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupOrderState'
+
+  /orders:
+    get:
+      summary: Fetch ordered groups with ordered habits for rendering
+      operationId: listOrdered
+      responses:
+        '200':
+          description: Ordered groups and habits
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  groups:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/HabitGroup'
+                  habitsByGroup:
+                    type: object
+                    additionalProperties:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/Habit'
+
+components:
+  schemas:
+    HabitGroup:
+      type: object
+      required: [id, title, order]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        color:
+          type: string
+          description: Hex color
+          nullable: true
+        order:
+          type: integer
+          minimum: 0
+    Habit:
+      type: object
+      required: [id, title, color, order]
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        color:
+          type: string
+        groupId:
+          type: string
+          nullable: true
+        order:
+          type: integer
+          minimum: 0
+    HabitOrderState:
+      type: object
+      properties:
+        habitId:
+          type: string
+        groupId:
+          type: string
+          nullable: true
+        order:
+          type: integer
+          minimum: 0
+    GroupOrderState:
+      type: object
+      properties:
+        groups:
+          type: array
+          items:
+            $ref: '#/components/schemas/HabitGroup'
