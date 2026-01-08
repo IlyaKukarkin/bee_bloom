@@ -241,7 +241,7 @@ export default function Home() {
 	);
 
 	const handleHabitDragEnd =
-		(groupId: string | null) =>
+		(_groupId: string | null) =>
 		({
 			data,
 			from,
@@ -258,7 +258,12 @@ export default function Home() {
 			if (!movedHabit) return;
 
 			// Persist to store - the listener will update UI
-			reorderHabitWithinGroup(store, movedHabit.id, to);
+			try {
+				reorderHabitWithinGroup(store, movedHabit.id, to);
+			} catch (error) {
+				console.error("Failed to reorder habit:", error);
+				// UI will remain in current state since store listener didn't fire
+			}
 		};
 
 	const handleGroupDragEnd = ({
@@ -275,7 +280,12 @@ export default function Home() {
 		if (!movedGroup) return;
 
 		// Persist to store - the listener will update UI
-		reorderGroupList(store, movedGroup.id, to);
+		try {
+			reorderGroupList(store, movedGroup.id, to);
+		} catch (error) {
+			console.error("Failed to reorder group:", error);
+			// UI will remain in current state since store listener didn't fire
+		}
 	};
 
 	const handleEnterGroupMode = () => {

@@ -12,7 +12,7 @@ export type HabitRow = {
 	description?: string | null;
 	color: string;
 	groupId?: string | null; // null = ungrouped
-	order: number;
+	order?: number; // Optional until migration completes
 	createdAt: string;
 	deletedAt?: string | null;
 };
