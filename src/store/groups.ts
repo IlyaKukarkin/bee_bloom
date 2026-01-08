@@ -1,9 +1,6 @@
 import type { Store } from "tinybase";
+import { generateId } from "./id";
 import type { HabitGroupRow, HabitRow } from "./types";
-
-function generateId(): string {
-	return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-}
 
 export function createHabitGroup(
 	store: Store,
@@ -64,6 +61,17 @@ export function deleteHabitGroup(store: Store, id: string): void {
 
 	habits.forEach((h) => {
 		store.setCell("habits", h.id, "groupId", null);
+	});
+
+	// Resequence ungrouped habits to avoid order collisions
+	const ungroupedHabits = (
+		Object.values(store.getTable("habits")) as HabitRow[]
+	)
+		.filter((h) => h.groupId == null && !h.deletedAt)
+		.sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+
+	ungroupedHabits.forEach((h, index) => {
+		store.setCell("habits", h.id, "order", index * 10);
 	});
 
 	// Delete the group

@@ -37,7 +37,7 @@ type GroupWithHabits = {
 export default function Home() {
 	const router = useRouter();
 	const store = useStore();
-	const today = todayKey();
+	const today = React.useMemo(() => todayKey(), []);
 
 	const [groupedHabits, setGroupedHabits] = React.useState<GroupWithHabits[]>(
 		[],
@@ -137,10 +137,20 @@ export default function Home() {
 			reorderHabitWithinGroup(store, movedHabit.id, to);
 		};
 
-	const handleGroupDragEnd = ({ from, to }: { from: number; to: number }) => {
+	const handleGroupDragEnd = ({
+		data,
+		from,
+		to,
+	}: {
+		data: HabitGroupRow[];
+		from: number;
+		to: number;
+	}) => {
 		if (!store || from === to) return;
-		const movedGroup = groups[from];
+		const movedGroup = data[to];
 		if (!movedGroup) return;
+
+		setGroups(data);
 		reorderGroupList(store, movedGroup.id, to);
 	};
 

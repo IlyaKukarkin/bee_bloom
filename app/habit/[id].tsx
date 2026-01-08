@@ -57,7 +57,7 @@ export default function EditHabit() {
 			setGroup("");
 		}
 		setLoaded(true);
-	}, [habitId, store, router.back]);
+	}, [habitId, store, router]);
 
 	const handleSave = () => {
 		if (!title.trim() || !store) {

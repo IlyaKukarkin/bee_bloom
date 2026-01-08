@@ -107,7 +107,7 @@ components:
           minimum: 0
     Habit:
       type: object
-      required: [id, title, order]
+      required: [id, title, color, order]
       properties:
         id:
           type: string

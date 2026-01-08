@@ -1,5 +1,6 @@
 import type { Store } from "tinybase";
 import { createHabitGroup, findHabitGroupByTitle } from "./groups";
+import { generateId } from "./id";
 import type { HabitRow } from "./types";
 
 // Default colors from garden-tone palette
@@ -10,10 +11,6 @@ const DEFAULT_COLORS = [
 	"#7a9cb8", // soft blue
 	"#b8a89e", // taupe
 ];
-
-function generateId(): string {
-	return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-}
 
 function getDefaultColor(index: number): string {
 	return DEFAULT_COLORS[index % DEFAULT_COLORS.length];
@@ -57,6 +54,11 @@ export function createHabit(store: Store, habit: HabitCreateInput): string {
 	const id = generateId();
 	const createdAt = new Date().toISOString();
 
+	const title = habit.title.trim();
+	if (!title) {
+		throw new Error("Habit title cannot be empty");
+	}
+
 	// Get current habit count for color rotation
 	const habitCount = Object.keys(store.getTable("habits")).filter((hId) => {
 		const deleted = store.getCell("habits", hId, "deletedAt");
@@ -77,7 +79,7 @@ export function createHabit(store: Store, habit: HabitCreateInput): string {
 
 	store.setRow("habits", id, {
 		id,
-		title: habit.title.trim(),
+		title,
 		description: habit.description?.trim() || null,
 		color,
 		groupId,
@@ -101,7 +103,11 @@ export function updateHabit(
 
 	const newRow: Partial<HabitRow> = {};
 	if (updates.title !== undefined) {
-		newRow.title = updates.title.trim();
+		const trimmedTitle = updates.title.trim();
+		if (!trimmedTitle) {
+			throw new Error("Habit title cannot be empty");
+		}
+		newRow.title = trimmedTitle;
 	}
 	if (updates.description !== undefined) {
 		newRow.description = updates.description?.trim() || null;

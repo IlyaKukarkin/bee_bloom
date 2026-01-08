@@ -1,9 +1,6 @@
 import type { Store } from "tinybase";
+import { generateId } from "./id";
 import type { HabitGroupRow, HabitRow } from "./types";
-
-function generateId(): string {
-	return `${Date.now()}-${Math.random().toString(36).slice(2, 11)}`;
-}
 
 /**
  * Migration: Add habitGroups table and order fields

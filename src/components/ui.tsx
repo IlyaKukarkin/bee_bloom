@@ -50,7 +50,7 @@ export function Body({
 }: {
 	children: React.ReactNode;
 	muted?: boolean;
-	style?: TextStyle;
+	style?: StyleProp<TextStyle>;
 }) {
 	const theme = useTheme();
 	return (
@@ -76,7 +76,7 @@ export function Button({
 	children: React.ReactNode;
 	onPress: () => void;
 	disabled?: boolean;
-	style?: ViewStyle;
+	style?: StyleProp<ViewStyle>;
 	variant?: "primary" | "secondary";
 }) {
 	const theme = useTheme();

@@ -14,12 +14,12 @@ export function StoreProvider({ children }: { children: React.ReactNode }) {
 		return s;
 	});
 
-	// Run migration before starting persister
-	React.useEffect(() => {
-		if (store) {
-			migrateToGroupsAndOrdering(store);
-		}
-	}, [store]);
+	// Run migration once synchronously before starting persister to avoid races
+	const migrationRanRef = React.useRef(false);
+	if (store && !migrationRanRef.current) {
+		migrateToGroupsAndOrdering(store);
+		migrationRanRef.current = true;
+	}
 
 	useAndStartPersister(store);
 
