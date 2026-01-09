@@ -1,7 +1,9 @@
+import { useEffect, useState } from "react";
 import type { Store } from "tinybase";
-import { getWeekStartingMonday } from "../lib/dates";
+import { useStore } from "tinybase/ui-react";
+import { getWeekEnd, getWeekStart, getWeekStartingMonday } from "../lib/dates";
 import { getWeeklyChecks } from "./checks";
-import type { HabitGroupRow, HabitRow } from "./types";
+import type { DailyCheckRow, HabitGroupRow, HabitRow } from "./types";
 
 export type HabitWithWeeklyChecks = {
 	habit: HabitRow;
@@ -12,6 +14,12 @@ export type HabitWithWeeklyChecks = {
 export type GroupedHabits = {
 	group: HabitGroupRow | null; // null = Ungrouped
 	habits: HabitRow[];
+};
+
+export type WeeklyProgress = {
+	current: number;
+	target: number;
+	display: string;
 };
 
 /**
@@ -65,6 +73,64 @@ export function getGroupedHabits(store: Store): GroupedHabits[] {
 	}
 
 	return result;
+}
+
+function getWeeklyProgress(
+	store: Store,
+	habitId: string,
+	now = new Date(),
+): WeeklyProgress {
+	const habit = store.getRow("habits", habitId) as HabitRow | undefined;
+
+	if (!habit || habit.deletedAt) {
+		return { current: 0, target: 7, display: "0/7" };
+	}
+
+	const weekStart = getWeekStart(now);
+	const weekEnd = getWeekEnd(now);
+	const checksTable = store.getTable("checks");
+
+	let current = 0;
+	Object.values(checksTable).forEach((row) => {
+		const check = row as DailyCheckRow;
+		if (
+			check.habitId === habitId &&
+			check.completed &&
+			check.date >= weekStart &&
+			check.date <= weekEnd
+		) {
+			current += 1;
+		}
+	});
+
+	const target = habit.weeklyTarget ?? 7;
+	return { current, target, display: `${current}/${target}` };
+}
+
+export function useWeeklyProgress(habitId: string): WeeklyProgress {
+	const store = useStore();
+	const [progress, setProgress] = useState<WeeklyProgress>({
+		current: 0,
+		target: 7,
+		display: "0/7",
+	});
+
+	useEffect(() => {
+		if (!store) return;
+
+		const update = () => setProgress(getWeeklyProgress(store, habitId));
+		update();
+
+		const listenerId = store.addTablesListener(() => {
+			update();
+		});
+
+		return () => {
+			store.delListener(listenerId);
+		};
+	}, [store, habitId]);
+
+	return progress;
 }
 
 export function getWeeklyData(store: Store): HabitWithWeeklyChecks[] {

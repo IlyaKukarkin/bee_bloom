@@ -15,6 +15,7 @@ export type HabitRow = {
 	order?: number; // Optional until migration completes
 	createdAt: string;
 	deletedAt?: string | null;
+	weeklyTarget: number; // 1-7, default 7
 };
 
 export type DailyCheckRow = {
