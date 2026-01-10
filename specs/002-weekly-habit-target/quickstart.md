@@ -53,10 +53,10 @@ Add `weeklyTarget` to `HabitRow` interface:
 export interface HabitRow {
   id: string;
   title: string;
-  description: string;
+  description?: string | null;
   color: string;
   groupId: string | null;
-  order: number;
+  order?: number;
   createdAt: string;
   deletedAt: string | null;
   weeklyTarget: number; // ADD THIS LINE
@@ -342,30 +342,38 @@ store.setRow("habits", habitId, {
 import { useWeeklyProgress } from '../src/store/selectors';
 ```
 
-2. For each habit rendered, add progress display:
+2. For each habit rendered, add progress display using a separate component:
 ```typescript
-// Inside the habit render loop
-const progress = useWeeklyProgress(habit.id);
-
-// Add to UI (adjust styling to match your design)
-<Text style={{ fontSize: 14, color: '#666' }}>
-  {progress.display}
-</Text>
+// Create a separate component that can use hooks
+function HabitProgressRow({ habit }: { habit: HabitRow }) {
+  const progress = useWeeklyProgress(habit.id);
+  
+  return (
+    <Text style={{ fontSize: 14, color: '#666' }}>
+      {progress.display}
+    </Text>
+  );
+}
 ```
 
 **Example integration** (adjust to your existing UI structure):
 ```typescript
-{habits.map((habit) => {
+{habits.map((habit) => (
+  <HabitProgressRow key={habit.id} habit={habit} />
+))}
+
+// Or with more structure:
+function HabitProgressRow({ habit }: { habit: HabitRow }) {
   const progress = useWeeklyProgress(habit.id);
   return (
-    <View key={habit.id} style={{ flexDirection: 'row', alignItems: 'center' }}>
+    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
       <Text style={{ flex: 1 }}>{habit.title}</Text>
       <Text style={{ fontSize: 16, fontWeight: '600' }}>
         {progress.display}
       </Text>
     </View>
   );
-})}
+}
 ```
 
 **Test**: 

@@ -127,10 +127,10 @@ export const schema = {
 export interface HabitRow {
   id: string;
   title: string;
-  description: string;
+  description?: string | null;
   color: string;
   groupId: string | null;
-  order: number;
+  order?: number;
   createdAt: string;
   deletedAt: string | null;
   weeklyTarget: number;  // NEW FIELD (1-7, default 7)

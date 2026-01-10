@@ -142,7 +142,7 @@ export function WeeklyTargetPicker({
 					styles.dropdownButton,
 					{
 						borderColor: theme.colors.border,
-						backgroundColor: "#ffffff",
+						backgroundColor: theme.colors.surface,
 					},
 				]}
 				onPress={() => setModalVisible(true)}
@@ -272,7 +272,7 @@ const styles = StyleSheet.create({
 		borderBottomWidth: 1,
 	},
 	optionSelected: {
-		backgroundColor: "rgba(60, 124, 90, 0.1)",
+		backgroundColor: "rgba(143, 184, 158, 0.2)", // theme.colors.accentMuted with opacity
 	},
 	optionText: {
 		fontSize: 16,

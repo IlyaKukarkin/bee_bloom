@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import type { Store } from "tinybase";
 import { useStore } from "tinybase/ui-react";
-import { getWeekEnd, getWeekStart, getWeekStartingMonday } from "../lib/dates";
+import { getWeekStartingMonday } from "../lib/dates";
 import { getWeeklyChecks } from "./checks";
-import type { DailyCheckRow, HabitGroupRow, HabitRow } from "./types";
+import type { HabitGroupRow, HabitRow } from "./types";
 
 export type HabitWithWeeklyChecks = {
 	habit: HabitRow;
@@ -86,22 +86,12 @@ function getWeeklyProgress(
 		return { current: 0, target: 7, display: "0/7" };
 	}
 
-	const weekStart = getWeekStart(now);
-	const weekEnd = getWeekEnd(now);
-	const checksTable = store.getTable("checks");
-
-	let current = 0;
-	Object.values(checksTable).forEach((row) => {
-		const check = row as DailyCheckRow;
-		if (
-			check.habitId === habitId &&
-			check.completed &&
-			check.date >= weekStart &&
-			check.date <= weekEnd
-		) {
-			current += 1;
-		}
-	});
+	// Use getWeeklyChecks for efficient filtering by habitId and date range
+	const weeklyChecks = getWeeklyChecks(store, habitId, now);
+	const current = weeklyChecks.reduce(
+		(count, check) => (check.completed ? count + 1 : count),
+		0,
+	);
 
 	const target = habit.weeklyTarget ?? 7;
 	return { current, target, display: `${current}/${target}` };
@@ -121,12 +111,17 @@ export function useWeeklyProgress(habitId: string): WeeklyProgress {
 		const update = () => setProgress(getWeeklyProgress(store, habitId));
 		update();
 
-		const listenerId = store.addTablesListener(() => {
+		// Listen to specific tables instead of all tables for better performance
+		const checksListenerId = store.addTableListener("checks", () => {
+			update();
+		});
+		const habitsListenerId = store.addTableListener("habits", () => {
 			update();
 		});
 
 		return () => {
-			store.delListener(listenerId);
+			store.delListener(checksListenerId);
+			store.delListener(habitsListenerId);
 		};
 	}, [store, habitId]);
 

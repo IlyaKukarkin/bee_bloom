@@ -88,19 +88,23 @@ export function migrateToGroupsAndOrdering(store: Store): void {
 export function migrateToWeeklyTarget(store: Store): void {
 	const habitsTable = store.getTable("habits");
 
-	// Skip if migration already ran
-	const firstHabit = Object.values(habitsTable)[0] as HabitRow | undefined;
-	if (firstHabit && typeof firstHabit.weeklyTarget === "number") {
-		console.log("Weekly target migration already applied, skipping");
+	// Skip if all habits already have weeklyTarget
+	const habitsNeedingMigration = Object.values(habitsTable).some((habit) => {
+		const habitRow = habit as HabitRow & { weeklyTarget?: number };
+		return habitRow.weeklyTarget === undefined;
+	});
+
+	if (!habitsNeedingMigration) {
+		console.log("All habits already have weeklyTarget, skipping migration");
 		return;
 	}
 
 	console.log("Applying weekly target migration...");
 
-	// Set weeklyTarget: 7 for all non-deleted habits
+	// Set weeklyTarget: 7 for all habits without the field (including deleted)
 	Object.entries(habitsTable).forEach(([habitId, habit]) => {
 		const habitRow = habit as HabitRow & { weeklyTarget?: number };
-		if (!habitRow.deletedAt && habitRow.weeklyTarget === undefined) {
+		if (habitRow.weeklyTarget === undefined) {
 			store.setCell("habits", habitId, "weeklyTarget", 7);
 		}
 	});

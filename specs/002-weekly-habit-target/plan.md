@@ -126,7 +126,7 @@ specs/002-weekly-habit-target/
 
 ### Implementation Readiness
 
-**Files to modify**: 7 files
+**Files to modify**: 10 files
 1. `src/store/schema.ts` - Add weeklyTarget field
 2. `src/store/types.ts` - Update HabitRow type
 3. `src/store/migrations.ts` - Add migration function
@@ -138,7 +138,7 @@ specs/002-weekly-habit-target/
 9. `app/habit/[id].tsx` - Add picker to edit form
 10. `app/weekly.tsx` - Display progress
 
-**New dependency**: `@react-native-picker/picker`
+**Note**: Implementation uses a custom Modal-based picker in `WeeklyTargetPicker` instead of `@react-native-picker/picker`
 
 **Estimated implementation time**: 85-115 minutes (1.5-2 hours)
 

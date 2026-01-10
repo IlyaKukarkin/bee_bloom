@@ -34,10 +34,10 @@ export const SCHEMA_CHANGE = {
 export interface HabitRowWithTarget {
   id: string;
   title: string;
-  description: string;
+  description?: string | null;
   color: string;
   groupId: string | null;
-  order: number;
+  order?: number;
   createdAt: string; // ISO 8601
   deletedAt: string | null; // ISO 8601 or null
   weeklyTarget: number; // NEW: 1-7, default 7
@@ -183,10 +183,10 @@ export interface WeeklyProgressDisplayProps {
 export interface LegacyHabitRow {
   id: string;
   title: string;
-  description: string;
+  description?: string | null;
   color: string;
   groupId: string | null;
-  order: number;
+  order?: number;
   createdAt: string;
   deletedAt: string | null;
   // weeklyTarget: DOES NOT EXIST

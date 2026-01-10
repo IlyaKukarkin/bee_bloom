@@ -61,7 +61,16 @@ export function getWeekStart(date: Date = new Date()): string {
 export function getWeekEnd(date: Date = new Date()): string {
 	const now = new Date(date);
 	const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+
+	// Calculate days from Monday (week starts on Monday)
+	// Special case: Sunday (0) is 6 days from Monday (last day of week)
+	// Monday (1) is 0 days from Monday
+	// Tuesday (2) is 1 day from Monday, etc.
 	const daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;
+
+	// Calculate days until Sunday (end of week)
+	// If today is Monday (daysFromMonday=0), Sunday is 6 days away
+	// If today is Sunday (daysFromMonday=6), Sunday is 0 days away (today)
 	const daysToSunday = 6 - daysFromMonday;
 
 	const year = now.getFullYear();
