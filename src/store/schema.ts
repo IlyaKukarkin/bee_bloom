@@ -18,6 +18,7 @@ export const schema = {
 			order: { type: "number" },
 			createdAt: { type: "string" },
 			deletedAt: { type: "string" },
+			weeklyTarget: { type: "number" },
 		},
 		checks: {
 			habitId: { type: "string" },

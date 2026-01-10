@@ -8,7 +8,48 @@ import {
 	type GroupedWeeklyData,
 	getWeekDaysFromMonday,
 	getWeeklyDataByGroup,
+	type HabitWithWeeklyChecks,
+	useWeeklyProgress,
 } from "../src/store/selectors";
+
+function HabitWeeklyRow({
+	item,
+	dates,
+}: {
+	item: HabitWithWeeklyChecks;
+	dates: string[];
+}) {
+	const progress = useWeeklyProgress(item.habit.id);
+
+	return (
+		<Surface style={styles.habitRow}>
+			<View style={styles.habitNameColumn}>
+				<View
+					style={[styles.colorDot, { backgroundColor: item.habit.color }]}
+				/>
+				<Body style={styles.habitName}>{item.habit.title}</Body>
+			</View>
+			<Body muted style={styles.progressText}>
+				{progress.display}
+			</Body>
+			<View style={styles.checksRow}>
+				{item.checks.map((check, idx) => (
+					<View key={dates[idx]} style={styles.dayColumn}>
+						<View
+							style={[
+								styles.checkDot,
+								check.completed && {
+									backgroundColor: item.habit.color,
+									opacity: 1,
+								},
+							]}
+						/>
+					</View>
+				))}
+			</View>
+		</Surface>
+	);
+}
 
 export default function Weekly() {
 	const router = useRouter();
@@ -83,32 +124,7 @@ export default function Weekly() {
 					<View key={groupTitle} style={styles.groupSection}>
 						<Body style={styles.groupTitle}>{groupTitle}</Body>
 						{habits.map((item) => (
-							<Surface key={item.habit.id} style={styles.habitRow}>
-								<View style={styles.habitNameColumn}>
-									<View
-										style={[
-											styles.colorDot,
-											{ backgroundColor: item.habit.color },
-										]}
-									/>
-									<Body style={styles.habitName}>{item.habit.title}</Body>
-								</View>
-								<View style={styles.checksRow}>
-									{item.checks.map((check, idx) => (
-										<View key={dates[idx]} style={styles.dayColumn}>
-											<View
-												style={[
-													styles.checkDot,
-													check.completed && {
-														backgroundColor: item.habit.color,
-														opacity: 1,
-													},
-												]}
-											/>
-										</View>
-									))}
-								</View>
-							</Surface>
+							<HabitWeeklyRow key={item.habit.id} item={item} dates={dates} />
 						))}
 					</View>
 				))}
@@ -154,6 +170,11 @@ const styles = StyleSheet.create({
 		width: 32,
 		alignItems: "center",
 		justifyContent: "center",
+	},
+	progressText: {
+		width: 52,
+		textAlign: "center",
+		fontWeight: "600",
 	},
 	dayLabel: {
 		fontSize: 12,

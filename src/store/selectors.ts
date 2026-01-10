@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import type { Store } from "tinybase";
+import { useStore } from "tinybase/ui-react";
 import { getWeekStartingMonday } from "../lib/dates";
 import { getWeeklyChecks } from "./checks";
 import type { HabitGroupRow, HabitRow } from "./types";
@@ -12,6 +14,12 @@ export type HabitWithWeeklyChecks = {
 export type GroupedHabits = {
 	group: HabitGroupRow | null; // null = Ungrouped
 	habits: HabitRow[];
+};
+
+export type WeeklyProgress = {
+	current: number;
+	target: number;
+	display: string;
 };
 
 /**
@@ -65,6 +73,59 @@ export function getGroupedHabits(store: Store): GroupedHabits[] {
 	}
 
 	return result;
+}
+
+function getWeeklyProgress(
+	store: Store,
+	habitId: string,
+	now = new Date(),
+): WeeklyProgress {
+	const habit = store.getRow("habits", habitId) as HabitRow | undefined;
+
+	if (!habit || habit.deletedAt) {
+		return { current: 0, target: 7, display: "0/7" };
+	}
+
+	// Use getWeeklyChecks for efficient filtering by habitId and date range
+	const weeklyChecks = getWeeklyChecks(store, habitId, now);
+	const current = weeklyChecks.reduce(
+		(count, check) => (check.completed ? count + 1 : count),
+		0,
+	);
+
+	const target = habit.weeklyTarget ?? 7;
+	return { current, target, display: `${current}/${target}` };
+}
+
+export function useWeeklyProgress(habitId: string): WeeklyProgress {
+	const store = useStore();
+	const [progress, setProgress] = useState<WeeklyProgress>({
+		current: 0,
+		target: 7,
+		display: "0/7",
+	});
+
+	useEffect(() => {
+		if (!store) return;
+
+		const update = () => setProgress(getWeeklyProgress(store, habitId));
+		update();
+
+		// Listen to specific tables instead of all tables for better performance
+		const checksListenerId = store.addTableListener("checks", () => {
+			update();
+		});
+		const habitsListenerId = store.addTableListener("habits", () => {
+			update();
+		});
+
+		return () => {
+			store.delListener(checksListenerId);
+			store.delListener(habitsListenerId);
+		};
+	}, [store, habitId]);
+
+	return progress;
 }
 
 export function getWeeklyData(store: Store): HabitWithWeeklyChecks[] {

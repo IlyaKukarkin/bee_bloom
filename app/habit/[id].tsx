@@ -10,7 +10,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useStore } from "tinybase/ui-react";
-import { Body, Button, Surface, Title } from "../../src/components/ui";
+import {
+	Body,
+	Button,
+	Surface,
+	Title,
+	WeeklyTargetPicker,
+} from "../../src/components/ui";
 import { copy } from "../../src/lib/copy";
 import { useTheme } from "../../src/lib/theme";
 import { deleteHabit, getHabitById, updateHabit } from "../../src/store/habits";
@@ -36,6 +42,7 @@ export default function EditHabit() {
 	const [color, setColor] = useState(COLORS[0].value);
 	const [group, setGroup] = useState("");
 	const [loaded, setLoaded] = useState(false);
+	const [weeklyTarget, setWeeklyTarget] = useState(7);
 
 	useEffect(() => {
 		if (!store) return;
@@ -48,6 +55,7 @@ export default function EditHabit() {
 		setTitle(habit.title);
 		setDescription(habit.description || "");
 		setColor(habit.color);
+		setWeeklyTarget(habit.weeklyTarget ?? 7);
 		if (habit.groupId) {
 			const group = store.getRow("habitGroups", habit.groupId) as
 				| { title?: string }
@@ -69,6 +77,7 @@ export default function EditHabit() {
 			description: description || null,
 			color,
 			group: group || null,
+			weeklyTarget,
 		});
 
 		router.back();
@@ -158,6 +167,11 @@ export default function EditHabit() {
 							))}
 						</View>
 					</View>
+
+					<WeeklyTargetPicker
+						value={weeklyTarget}
+						onValueChange={setWeeklyTarget}
+					/>
 
 					<View style={styles.actions}>
 						<Button onPress={handleSave} disabled={!title.trim()}>
