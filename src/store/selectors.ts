@@ -101,8 +101,9 @@ function getWeeklyProgress(
 		0,
 	);
 
-	const target = habit.weeklyTarget ?? 7;
-	const percentComplete = target > 0 ? (current / target) * 100 : 0;
+	const rawTarget = habit.weeklyTarget ?? 7;
+	const target = Math.min(7, Math.max(1, rawTarget));
+	const percentComplete = Math.min(100, (current / target) * 100);
 	return {
 		habitId,
 		current,
@@ -137,7 +138,8 @@ export function useWeeklyProgress(habitId: string): WeeklyProgress {
 		});
 
 		// Set up a timer to update at the next week transition (Monday midnight)
-		const setupWeekTransitionTimer = () => {
+		let transitionTimerId: ReturnType<typeof setTimeout> | null = null;
+		const scheduleWeekTransitionTimer = () => {
 			const now = new Date();
 			const nextMonday = new Date(now);
 			const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
@@ -146,17 +148,16 @@ export function useWeeklyProgress(habitId: string): WeeklyProgress {
 			nextMonday.setDate(now.getDate() + daysUntilMonday);
 			nextMonday.setHours(0, 0, 0, 0);
 
-			const msUntilMonday = nextMonday.getTime() - now.getTime();
+			const msUntilMonday = Math.max(0, nextMonday.getTime() - now.getTime());
 
-			return setTimeout(() => {
+			transitionTimerId = setTimeout(() => {
 				update();
-				// Set up the next timer after this one fires
-				const timerId = setupWeekTransitionTimer();
-				return timerId;
+				// Schedule the next transition
+				scheduleWeekTransitionTimer();
 			}, msUntilMonday);
 		};
 
-		const transitionTimerId = setupWeekTransitionTimer();
+		scheduleWeekTransitionTimer();
 
 		return () => {
 			store.delListener(checksListenerId);
