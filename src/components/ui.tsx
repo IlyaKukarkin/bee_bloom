@@ -50,10 +50,12 @@ export function Title({ children }: { children: React.ReactNode }) {
 export function Body({
 	children,
 	muted,
+	numberOfLines,
 	style,
 }: {
 	children: React.ReactNode;
 	muted?: boolean;
+	numberOfLines?: number;
 	style?: StyleProp<TextStyle>;
 }) {
 	const theme = useTheme();
@@ -64,6 +66,7 @@ export function Body({
 				{ color: muted ? theme.colors.subtext : theme.colors.text },
 				style,
 			]}
+			numberOfLines={numberOfLines}
 		>
 			{children}
 		</RNText>

@@ -73,12 +73,15 @@ const AnimatedHabitItem = React.memo(function AnimatedHabitItem({
 	return (
 		<Animated.View style={{ opacity: pulseAnim }}>
 			<Surface style={styles.habitRow}>
-				<Pressable
-					style={styles.habitContent}
-					onPress={() => onEdit(item.id)}
-					onLongPress={drag}
-				>
-					<View style={[styles.colorDot, { backgroundColor: item.color }]} />
+				<Pressable style={styles.habitContent} onPress={() => onEdit(item.id)}>
+					<Pressable
+						onLongPress={drag}
+						delayLongPress={200}
+						hitSlop={10}
+						style={styles.dragHandle}
+					>
+						<View style={[styles.colorDot, { backgroundColor: item.color }]} />
+					</Pressable>
 					<View style={styles.habitText}>
 						<Body style={styles.habitTitle}>{item.title}</Body>
 						{item.description && (
@@ -164,6 +167,7 @@ const AnimatedGroupItem = React.memo(function AnimatedGroupItem({
 export default function Home() {
 	const router = useRouter();
 	const store = useStore();
+	const scrollRef = React.useRef<ScrollView>(null);
 	const today = React.useMemo(() => todayKey(), []);
 
 	const [groupedHabits, setGroupedHabits] = React.useState<GroupWithHabits[]>(
@@ -171,6 +175,7 @@ export default function Home() {
 	);
 	const [groups, setGroups] = React.useState<HabitGroupRow[]>([]);
 	const [groupMode, setGroupMode] = React.useState(false);
+	const [isDragging, setIsDragging] = React.useState(false);
 
 	const loadHabits = React.useCallback(() => {
 		if (!store) return;
@@ -384,6 +389,8 @@ export default function Home() {
 				<ScrollView
 					style={styles.scrollView}
 					contentContainerStyle={styles.scrollContent}
+					ref={scrollRef}
+					scrollEnabled={!isDragging}
 				>
 					{groupedHabits.map(({ group, habits }) => (
 						<View key={group?.id || "ungrouped"} style={styles.groupContainer}>
@@ -397,13 +404,18 @@ export default function Home() {
 								keyExtractor={(item) => item.id}
 								renderItem={renderHabitItem}
 								extraData={habits}
-								onDragBegin={() =>
-									Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light)
-								}
+								simultaneousHandlers={scrollRef}
+								activationDistance={16}
+								onDragBegin={() => {
+									setIsDragging(true);
+									Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+								}}
 								onDragEnd={(params) => {
+									setIsDragging(false);
 									Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 									handleHabitDragEnd(group?.id || null)(params);
 								}}
+								onRelease={() => setIsDragging(false)}
 								ItemSeparatorComponent={() => (
 									<View style={styles.habitSeparator} />
 								)}
@@ -474,6 +486,11 @@ const styles = StyleSheet.create({
 		flexDirection: "row",
 		alignItems: "center",
 		gap: 12,
+	},
+	dragHandle: {
+		padding: 4,
+		alignItems: "center",
+		justifyContent: "center",
 	},
 	colorDot: {
 		width: 12,
