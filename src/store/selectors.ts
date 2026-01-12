@@ -17,9 +17,11 @@ export type GroupedHabits = {
 };
 
 export type WeeklyProgress = {
+	habitId: string;
 	current: number;
 	target: number;
 	display: string;
+	percentComplete: number;
 };
 
 /**
@@ -83,7 +85,13 @@ function getWeeklyProgress(
 	const habit = store.getRow("habits", habitId) as HabitRow | undefined;
 
 	if (!habit || habit.deletedAt) {
-		return { current: 0, target: 7, display: "0/7" };
+		return {
+			habitId,
+			current: 0,
+			target: 7,
+			display: "0/7",
+			percentComplete: 0,
+		};
 	}
 
 	// Use getWeeklyChecks for efficient filtering by habitId and date range
@@ -94,15 +102,24 @@ function getWeeklyProgress(
 	);
 
 	const target = habit.weeklyTarget ?? 7;
-	return { current, target, display: `${current}/${target}` };
+	const percentComplete = target > 0 ? (current / target) * 100 : 0;
+	return {
+		habitId,
+		current,
+		target,
+		display: `${current}/${target}`,
+		percentComplete,
+	};
 }
 
 export function useWeeklyProgress(habitId: string): WeeklyProgress {
 	const store = useStore();
 	const [progress, setProgress] = useState<WeeklyProgress>({
+		habitId,
 		current: 0,
 		target: 7,
 		display: "0/7",
+		percentComplete: 0,
 	});
 
 	useEffect(() => {
@@ -119,9 +136,34 @@ export function useWeeklyProgress(habitId: string): WeeklyProgress {
 			update();
 		});
 
+		// Set up a timer to update at the next week transition (Monday midnight)
+		const setupWeekTransitionTimer = () => {
+			const now = new Date();
+			const nextMonday = new Date(now);
+			const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+			const daysUntilMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek; // Days until next Monday
+
+			nextMonday.setDate(now.getDate() + daysUntilMonday);
+			nextMonday.setHours(0, 0, 0, 0);
+
+			const msUntilMonday = nextMonday.getTime() - now.getTime();
+
+			return setTimeout(() => {
+				update();
+				// Set up the next timer after this one fires
+				const timerId = setupWeekTransitionTimer();
+				return timerId;
+			}, msUntilMonday);
+		};
+
+		const transitionTimerId = setupWeekTransitionTimer();
+
 		return () => {
 			store.delListener(checksListenerId);
 			store.delListener(habitsListenerId);
+			if (transitionTimerId) {
+				clearTimeout(transitionTimerId);
+			}
 		};
 	}, [store, habitId]);
 
