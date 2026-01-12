@@ -80,3 +80,34 @@ export function migrateToGroupsAndOrdering(store: Store): void {
 
 	console.log(`Migration complete: created ${sortedGroupNames.length} groups`);
 }
+
+/**
+ * Migration: Add weeklyTarget field to existing habits
+ * Sets default value of 7 for all habits without the field
+ */
+export function migrateToWeeklyTarget(store: Store): void {
+	const habitsTable = store.getTable("habits");
+
+	// Skip if all habits already have weeklyTarget
+	const habitsNeedingMigration = Object.values(habitsTable).some((habit) => {
+		const habitRow = habit as HabitRow & { weeklyTarget?: number };
+		return habitRow.weeklyTarget === undefined;
+	});
+
+	if (!habitsNeedingMigration) {
+		console.log("All habits already have weeklyTarget, skipping migration");
+		return;
+	}
+
+	console.log("Applying weekly target migration...");
+
+	// Set weeklyTarget: 7 for all habits without the field (including deleted)
+	Object.entries(habitsTable).forEach(([habitId, habit]) => {
+		const habitRow = habit as HabitRow & { weeklyTarget?: number };
+		if (habitRow.weeklyTarget === undefined) {
+			store.setCell("habits", habitId, "weeklyTarget", 7);
+		}
+	});
+
+	console.log("Weekly target migration complete");
+}

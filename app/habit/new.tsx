@@ -9,7 +9,13 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useStore } from "tinybase/ui-react";
-import { Body, Button, Surface, Title } from "../../src/components/ui";
+import {
+	Body,
+	Button,
+	Surface,
+	Title,
+	WeeklyTargetPicker,
+} from "../../src/components/ui";
 import { useTheme } from "../../src/lib/theme";
 import { createHabit } from "../../src/store/habits";
 
@@ -30,12 +36,14 @@ export default function NewHabit() {
 	const [description, setDescription] = useState("");
 	const [color, setColor] = useState(COLORS[0].value);
 	const [group, setGroup] = useState("");
+	const [weeklyTarget, setWeeklyTarget] = useState(7);
 
 	const resetForm = () => {
 		setTitle("");
 		setDescription("");
 		setColor(COLORS[0].value);
 		setGroup("");
+		setWeeklyTarget(7);
 	};
 
 	const handleSave = () => {
@@ -48,6 +56,7 @@ export default function NewHabit() {
 			description: description || null,
 			color,
 			group: group || null,
+			weeklyTarget,
 		});
 
 		resetForm();
@@ -125,6 +134,11 @@ export default function NewHabit() {
 							))}
 						</View>
 					</View>
+
+					<WeeklyTargetPicker
+						value={weeklyTarget}
+						onValueChange={setWeeklyTarget}
+					/>
 
 					<View style={styles.actions}>
 						<Button

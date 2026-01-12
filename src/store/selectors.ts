@@ -1,4 +1,6 @@
+import { useEffect, useState } from "react";
 import type { Store } from "tinybase";
+import { useStore } from "tinybase/ui-react";
 import { getWeekStartingMonday } from "../lib/dates";
 import { getWeeklyChecks } from "./checks";
 import type { HabitGroupRow, HabitRow } from "./types";
@@ -12,6 +14,14 @@ export type HabitWithWeeklyChecks = {
 export type GroupedHabits = {
 	group: HabitGroupRow | null; // null = Ungrouped
 	habits: HabitRow[];
+};
+
+export type WeeklyProgress = {
+	habitId: string;
+	current: number;
+	target: number;
+	display: string;
+	percentComplete: number;
 };
 
 /**
@@ -65,6 +75,100 @@ export function getGroupedHabits(store: Store): GroupedHabits[] {
 	}
 
 	return result;
+}
+
+function getWeeklyProgress(
+	store: Store,
+	habitId: string,
+	now = new Date(),
+): WeeklyProgress {
+	const habit = store.getRow("habits", habitId) as HabitRow | undefined;
+
+	if (!habit || habit.deletedAt) {
+		return {
+			habitId,
+			current: 0,
+			target: 7,
+			display: "0/7",
+			percentComplete: 0,
+		};
+	}
+
+	// Use getWeeklyChecks for efficient filtering by habitId and date range
+	const weeklyChecks = getWeeklyChecks(store, habitId, now);
+	const current = weeklyChecks.reduce(
+		(count, check) => (check.completed ? count + 1 : count),
+		0,
+	);
+
+	const rawTarget = habit.weeklyTarget ?? 7;
+	const target = Math.min(7, Math.max(1, rawTarget));
+	const percentComplete = Math.min(100, (current / target) * 100);
+	return {
+		habitId,
+		current,
+		target,
+		display: `${current}/${target}`,
+		percentComplete,
+	};
+}
+
+export function useWeeklyProgress(habitId: string): WeeklyProgress {
+	const store = useStore();
+	const [progress, setProgress] = useState<WeeklyProgress>({
+		habitId,
+		current: 0,
+		target: 7,
+		display: "0/7",
+		percentComplete: 0,
+	});
+
+	useEffect(() => {
+		if (!store) return;
+
+		const update = () => setProgress(getWeeklyProgress(store, habitId));
+		update();
+
+		// Listen to specific tables instead of all tables for better performance
+		const checksListenerId = store.addTableListener("checks", () => {
+			update();
+		});
+		const habitsListenerId = store.addTableListener("habits", () => {
+			update();
+		});
+
+		// Set up a timer to update at the next week transition (Monday midnight)
+		let transitionTimerId: ReturnType<typeof setTimeout> | null = null;
+		const scheduleWeekTransitionTimer = () => {
+			const now = new Date();
+			const nextMonday = new Date(now);
+			const dayOfWeek = now.getDay(); // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+			const daysUntilMonday = dayOfWeek === 0 ? 1 : 8 - dayOfWeek; // Days until next Monday
+
+			nextMonday.setDate(now.getDate() + daysUntilMonday);
+			nextMonday.setHours(0, 0, 0, 0);
+
+			const msUntilMonday = Math.max(0, nextMonday.getTime() - now.getTime());
+
+			transitionTimerId = setTimeout(() => {
+				update();
+				// Schedule the next transition
+				scheduleWeekTransitionTimer();
+			}, msUntilMonday);
+		};
+
+		scheduleWeekTransitionTimer();
+
+		return () => {
+			store.delListener(checksListenerId);
+			store.delListener(habitsListenerId);
+			if (transitionTimerId) {
+				clearTimeout(transitionTimerId);
+			}
+		};
+	}, [store, habitId]);
+
+	return progress;
 }
 
 export function getWeeklyData(store: Store): HabitWithWeeklyChecks[] {

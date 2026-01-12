@@ -16,16 +16,25 @@ function getDefaultColor(index: number): string {
 	return DEFAULT_COLORS[index % DEFAULT_COLORS.length];
 }
 
+function sanitizeWeeklyTarget(target?: number): number {
+	const value = target ?? 7;
+	if (!Number.isInteger(value)) return 7;
+	if (value < 1) return 1;
+	if (value > 7) return 7;
+	return value;
+}
+
 type HabitCreateInput = {
 	title: string;
 	description: string | null;
 	color?: string | null;
 	groupId?: string | null;
 	group?: string | null;
+	weeklyTarget?: number; // 1-7, defaults to 7
 };
 
 type HabitUpdateInput = Partial<
-	Pick<HabitRow, "title" | "description" | "color" | "groupId">
+	Pick<HabitRow, "title" | "description" | "color" | "groupId" | "weeklyTarget">
 > & { group?: string | null };
 
 function resolveGroupId(
@@ -53,6 +62,7 @@ function resolveGroupId(
 export function createHabit(store: Store, habit: HabitCreateInput): string {
 	const id = generateId();
 	const createdAt = new Date().toISOString();
+	const weeklyTarget = sanitizeWeeklyTarget(habit.weeklyTarget);
 
 	const title = habit.title.trim();
 	if (!title) {
@@ -86,6 +96,7 @@ export function createHabit(store: Store, habit: HabitCreateInput): string {
 		order: maxOrder + 10,
 		createdAt,
 		deletedAt: null,
+		weeklyTarget,
 	});
 
 	return id;
@@ -114,6 +125,9 @@ export function updateHabit(
 	}
 	if (updates.color !== undefined) {
 		newRow.color = updates.color;
+	}
+	if (updates.weeklyTarget !== undefined) {
+		newRow.weeklyTarget = sanitizeWeeklyTarget(updates.weeklyTarget);
 	}
 
 	const resolvedGroupId = resolveGroupId(store, updates.groupId, updates.group);
