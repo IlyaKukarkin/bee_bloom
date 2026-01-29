@@ -240,10 +240,7 @@ const styles = StyleSheet.create({
 		marginTop: 12,
 	},
 	deleteSection: {
-		marginTop: 24,
-		paddingTop: 24,
-		borderTopWidth: 1,
-		borderTopColor: "#d8e2d8",
+		marginTop: 12,
 	},
 	deleteButton: {
 		backgroundColor: "#d88c4a",

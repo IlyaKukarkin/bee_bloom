@@ -375,7 +375,7 @@ export default function Home() {
 
 	return (
 		<GestureHandlerRootView style={{ flex: 1 }}>
-			<SafeAreaView style={styles.screen}>
+			<SafeAreaView style={styles.screen} edges={["top"]}>
 				<View style={styles.header}>
 					<Title>Today</Title>
 					<Button
@@ -391,6 +391,7 @@ export default function Home() {
 					contentContainerStyle={styles.scrollContent}
 					ref={scrollRef}
 					scrollEnabled={!isDragging}
+					showsVerticalScrollIndicator={false}
 				>
 					{groupedHabits.map(({ group, habits }) => (
 						<View key={group?.id || "ungrouped"} style={styles.groupContainer}>
@@ -448,15 +449,14 @@ const styles = StyleSheet.create({
 	},
 	scrollView: {
 		flex: 1,
-		overflow: "visible",
 	},
 	scrollContent: {
 		padding: 16,
-		overflow: "visible",
+		paddingBottom: 120,
+		flexGrow: 1,
 	},
 	groupContainer: {
 		marginBottom: 24,
-		overflow: "visible",
 	},
 	habitSeparator: {
 		height: 12,
@@ -479,7 +479,6 @@ const styles = StyleSheet.create({
 		justifyContent: "space-between",
 		padding: 16,
 		gap: 12,
-		overflow: "visible",
 	},
 	habitContent: {
 		flex: 1,
