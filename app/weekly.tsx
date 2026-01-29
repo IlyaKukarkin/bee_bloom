@@ -48,6 +48,7 @@ function HabitWeeklyRow({
 									styles.checkDot,
 									check.completed && {
 										backgroundColor: item.habit.color,
+										opacity: 1,
 									},
 								]}
 							>
