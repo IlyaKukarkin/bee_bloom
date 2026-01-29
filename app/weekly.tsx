@@ -21,6 +21,11 @@ function HabitWeeklyRow({
 }) {
 	const progress = useWeeklyProgress(item.habit.id);
 
+	const formatDay = (dateStr: string) => {
+		const date = new Date(`${dateStr}T00:00:00`);
+		return date.toLocaleDateString("en-US", { weekday: "short" }).slice(0, 1);
+	};
+
 	return (
 		<Surface style={styles.habitRow}>
 			<Body style={styles.habitName} numberOfLines={2}>
@@ -46,7 +51,16 @@ function HabitWeeklyRow({
 										opacity: 1,
 									},
 								]}
-							/>
+							>
+								<Body
+									style={[
+										styles.dayLetter,
+										check.completed && styles.dayLetterCompleted,
+									]}
+								>
+									{formatDay(dates[idx])}
+								</Body>
+							</View>
 						</View>
 					))}
 				</View>
@@ -86,12 +100,6 @@ export default function Weekly() {
 		};
 	}, [store, loadData]);
 
-	// Format date to day abbreviation (e.g., "Mon", "Tue")
-	const formatDay = (dateStr: string) => {
-		const date = new Date(`${dateStr}T00:00:00`);
-		return date.toLocaleDateString("en-US", { weekday: "short" }).slice(0, 1);
-	};
-
 	if (groupedData.length === 0) {
 		return (
 			<SafeAreaView style={styles.screen}>
@@ -111,18 +119,6 @@ export default function Weekly() {
 			</View>
 
 			<ScrollView contentContainerStyle={styles.content}>
-				{/* Day headers */}
-				<View style={styles.dayHeaders}>
-					<View style={styles.habitNameColumn} />
-					{dates.map((date) => (
-						<View key={date} style={styles.dayColumn}>
-							<Body muted style={styles.dayLabel}>
-								{formatDay(date)}
-							</Body>
-						</View>
-					))}
-				</View>
-
 				{/* Grouped habits */}
 				{groupedData.map(({ groupTitle, habits }) => (
 					<View key={groupTitle} style={styles.groupSection}>
@@ -171,7 +167,7 @@ const styles = StyleSheet.create({
 		alignItems: "center",
 	},
 	dayColumn: {
-		width: 32,
+		width: 28,
 		alignItems: "center",
 		justifyContent: "center",
 	},
@@ -221,10 +217,20 @@ const styles = StyleSheet.create({
 		gap: 8,
 	},
 	checkDot: {
-		width: 20,
-		height: 20,
-		borderRadius: 10,
+		width: 24,
+		height: 24,
+		borderRadius: 12,
 		backgroundColor: "#d8e2d8",
-		opacity: 0.3,
+		opacity: 0.5,
+		alignItems: "center",
+		justifyContent: "center",
+	},
+	dayLetter: {
+		fontSize: 11,
+		fontWeight: "700",
+		color: "#1f2d1f",
+	},
+	dayLetterCompleted: {
+		color: "#ffffff",
 	},
 });

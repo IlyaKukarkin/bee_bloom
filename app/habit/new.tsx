@@ -148,7 +148,11 @@ export default function NewHabit() {
 						>
 							Cancel
 						</Button>
-						<Button onPress={handleSave} disabled={!title.trim()}>
+						<Button
+							onPress={handleSave}
+							disabled={!title.trim()}
+							style={styles.buttonPrimary}
+						>
 							Save
 						</Button>
 					</View>
@@ -210,6 +214,9 @@ const styles = StyleSheet.create({
 		marginTop: 12,
 	},
 	buttonSecondary: {
+		flex: 0,
+	},
+	buttonPrimary: {
 		flex: 1,
 	},
 });
