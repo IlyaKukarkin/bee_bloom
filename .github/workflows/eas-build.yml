@@ -18,14 +18,16 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: npm
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
       - name: Install dependencies
-        run: npm ci
+        run: bun ci
       - name: Build on EAS
         env:
           WAIT_FOR_BUILD: ${{ github.event_name == 'workflow_dispatch' }}
@@ -71,14 +73,16 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 24
-          cache: npm
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
       - name: Setup Expo and EAS
         uses: expo/expo-github-action@v8
         with:
           eas-version: latest
           token: ${{ secrets.EXPO_TOKEN }}
       - name: Install dependencies
-        run: npm ci
+        run: bun ci
       - name: Verify latest build
         run: |
           echo "Fetching latest iOS build..."
