@@ -38,5 +38,8 @@
 		"babel-preset-expo": "~55.0.0",
 		"typescript": "~5.9.2"
 	},
+	"overrides": {
+		"hermes-compiler": "250829098.0.6"
+	},
 	"private": true
 }
