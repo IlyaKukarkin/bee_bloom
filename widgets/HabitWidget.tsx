@@ -128,8 +128,8 @@ const HabitWidget = (props: WidgetBase) => {
 			{incompleteHabits.map((habit) => (
 				<Button
 					key={habit.id}
-						action={() => {
-							setHabitComplete(storeInstance.store, habit.id);
+					action={() => {
+						setHabitComplete(storeInstance.store, habit.id);
 						refreshWidgetTimeline();
 					}}
 				>
