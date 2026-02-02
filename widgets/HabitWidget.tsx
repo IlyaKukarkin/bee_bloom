@@ -1,5 +1,10 @@
 import { Button, HStack, Spacer, Text, VStack } from "@expo/ui/swift-ui";
-import { foregroundStyle, frame, padding } from "@expo/ui/swift-ui/modifiers";
+import {
+	font,
+	foregroundStyle,
+	frame,
+	padding,
+} from "@expo/ui/swift-ui/modifiers";
 import { updateWidgetTimeline, type WidgetBase } from "expo-widgets";
 import {
 	createWidgetStore,
@@ -77,7 +82,7 @@ const HabitWidget = (props: WidgetBase) => {
 					frame({ maxWidth: Infinity, maxHeight: Infinity }),
 				]}
 			>
-				<Text size={14} modifiers={[foregroundStyle("#666666")]}>
+				<Text modifiers={[font({ size: 14 }), foregroundStyle("#666666")]}>
 					Loading habits…
 				</Text>
 			</VStack>
@@ -97,7 +102,7 @@ const HabitWidget = (props: WidgetBase) => {
 					frame({ maxWidth: Infinity, maxHeight: Infinity }),
 				]}
 			>
-				<Text size={14} modifiers={[foregroundStyle("#666666")]}>
+				<Text modifiers={[font({ size: 14 }), foregroundStyle("#666666")]}>
 					Add your first habit in BeeBloom
 				</Text>
 			</VStack>
@@ -112,7 +117,7 @@ const HabitWidget = (props: WidgetBase) => {
 					frame({ maxWidth: Infinity, maxHeight: Infinity }),
 				]}
 			>
-				<Text size={16} weight="semibold">
+				<Text modifiers={[font({ size: 16, weight: "semibold" })]}>
 					All habits completed today! 🌸
 				</Text>
 			</VStack>
@@ -126,7 +131,12 @@ const HabitWidget = (props: WidgetBase) => {
 				frame({ maxWidth: Infinity, alignment: "topLeading" }),
 			]}
 		>
-			<Text size={12} weight="medium" modifiers={[foregroundStyle("#999999")]}>
+			<Text
+				modifiers={[
+					font({ size: 12, weight: "medium" }),
+					foregroundStyle("#999999"),
+				]}
+			>
 				BeeBloom
 			</Text>
 
@@ -145,17 +155,19 @@ const HabitWidget = (props: WidgetBase) => {
 					}}
 				>
 					<HStack modifiers={[padding({ vertical: 4 })]}>
-						<Text size={16} modifiers={[foregroundStyle(habit.color)]}>
+						<Text
+							modifiers={[font({ size: 16 }), foregroundStyle(habit.color)]}
+						>
 							●
 						</Text>
 
 						<Text
 							modifiers={[
 								// Responsive typography: smaller size for compact widget.
+								font({ size: widgetSize === "small" ? 13 : 14 }),
 								foregroundStyle("#000000"),
 								padding({ leading: 8 }),
 							]}
-							size={widgetSize === "small" ? 13 : 14}
 						>
 							{habit.title}
 						</Text>
@@ -165,8 +177,11 @@ const HabitWidget = (props: WidgetBase) => {
 
 			{overflowCount > 0 && (
 				<Text
-					size={11}
-					modifiers={[foregroundStyle("#999999"), padding({ top: 4 })]}
+					modifiers={[
+						font({ size: 11 }),
+						foregroundStyle("#999999"),
+						padding({ top: 4 }),
+					]}
 				>
 					{`+${overflowCount} more`}
 				</Text>
