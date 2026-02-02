@@ -142,6 +142,7 @@ const HabitWidget = (props: WidgetBase) => {
 
 						<Text
 							modifiers={[
+								// Responsive typography: smaller size for compact widget.
 								font({ size: widgetSize === "small" ? 13 : 14 }),
 								foregroundStyle("#000000"),
 								padding({ leading: 8 }),

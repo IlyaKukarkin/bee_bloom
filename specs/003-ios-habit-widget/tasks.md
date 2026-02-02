@@ -125,17 +125,17 @@
 
 **Purpose**: Final validation, code quality, and documentation
 
-- [ ] T034 [P] Run `bun run lint` and fix any Biome errors or warnings
-- [ ] T035 [P] Add TypeScript type annotations to all widget bridge functions
+- [x] T034 [P] Run `bun run lint` and fix any Biome errors or warnings
+- [x] T035 [P] Add TypeScript type annotations to all widget bridge functions
 - [ ] T036 Test midnight rollover behavior by advancing system time (widget should reset to incomplete)
 - [ ] T037 Test offline functionality - enable airplane mode, verify widget still works
 - [ ] T038 Test habit deletion in main app - verify widget updates to remove deleted habit
 - [ ] T039 Test with long habit titles - verify ellipsis truncation works correctly
 - [ ] T040 Test with no habits, some habits, all completed - verify all states display correctly
 - [ ] T041 [P] Validate all quickstart.md test scenarios pass on physical device or simulator
-- [ ] T042 [P] Add code comments to widget component explaining size-responsive logic
+- [x] T042 [P] Add code comments to widget component explaining size-responsive logic
 - [ ] T043 Verify widget update timing - complete habit in app, check widget updates within 5 seconds
-- [ ] T046 Update package version in package.json and app.json to 1.3.0
+- [x] T046 Update package version in package.json and app.json to 1.3.0
 
 ---
 
