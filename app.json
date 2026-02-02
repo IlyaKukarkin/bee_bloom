@@ -32,7 +32,30 @@
 		"web": {
 			"favicon": "./assets/favicon.png"
 		},
-		"plugins": ["expo-sqlite", "expo-router"],
+		"plugins": [
+			"expo-sqlite",
+			"expo-router",
+			[
+				"expo-widgets",
+				{
+					"bundleIdentifier": "com.ilyakukarkinorg.beebloom.widgets",
+					"groupIdentifier": "group.com.ilyakukarkinorg.beebloom",
+					"enablePushNotifications": false,
+					"widgets": [
+						{
+							"name": "HabitWidget",
+							"displayName": "BeeBloom Habits",
+							"description": "Complete your daily habits",
+							"supportedFamilies": [
+								"systemSmall",
+								"systemMedium",
+								"systemLarge"
+							]
+						}
+					]
+				}
+			]
+		],
 		"experiments": {
 			"typedRoutes": true,
 			"reactCompiler": true
