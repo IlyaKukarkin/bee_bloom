@@ -54,6 +54,13 @@
 						}
 					]
 				}
+			],
+			[
+				"expo-build-properties",
+				{
+					"buildReactNativeFromSource": true,
+					"useHermesV1": true
+				}
 			]
 		],
 		"experiments": {
