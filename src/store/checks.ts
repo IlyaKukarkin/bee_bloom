@@ -6,7 +6,15 @@ import {
 } from "../lib/dates";
 import type { DailyCheckRow } from "./types";
 
-function generateCheckId(habitId: string, date: string): string {
+/**
+ * Generates a unique check row ID by combining habit ID and date.
+ * Format: {habitId}:{date} (e.g., "habit123:2026-02-02")
+ *
+ * @param habitId - Habit identifier
+ * @param date - Date key in YYYY-MM-DD format
+ * @returns Composite check row ID
+ */
+export function generateCheckId(habitId: string, date: string): string {
 	return `${habitId}:${date}`;
 }
 

@@ -1,10 +1,5 @@
-import { Button, HStack, Link, Spacer, Text, VStack } from "@expo/ui/swift-ui";
-import {
-	font,
-	foregroundStyle,
-	frame,
-	padding,
-} from "@expo/ui/swift-ui/modifiers";
+import { Button, HStack, Spacer, Text, VStack } from "@expo/ui/swift-ui";
+import { foregroundStyle, frame, padding } from "@expo/ui/swift-ui/modifiers";
 import { updateWidgetTimeline, type WidgetBase } from "expo-widgets";
 import {
 	createWidgetStore,
@@ -57,8 +52,11 @@ function buildTimelineDates(now = new Date()): Date[] {
 export function refreshWidgetTimeline(retryCount = 0): void {
 	try {
 		updateWidgetTimeline("HabitWidget", buildTimelineDates(), HabitWidget);
-	} catch (_error) {
-		if (retryCount >= MAX_RETRIES) return;
+	} catch (error) {
+		if (retryCount >= MAX_RETRIES) {
+			console.error("Widget timeline update failed after max retries:", error);
+			return;
+		}
 		setTimeout(() => {
 			refreshWidgetTimeline(retryCount + 1);
 		}, RETRY_DELAY_MS);
@@ -67,7 +65,25 @@ export function refreshWidgetTimeline(retryCount = 0): void {
 
 const HabitWidget = (props: WidgetBase) => {
 	const storeInstance = getWidgetStore();
+	const isLoaded = storeInstance.isLoaded();
 	const widgetSize = getWidgetSizeFromFamily(props.family);
+
+	// Show loading state until store data is ready
+	if (!isLoaded) {
+		return (
+			<VStack
+				modifiers={[
+					padding({ all: 16 }),
+					frame({ maxWidth: Infinity, maxHeight: Infinity }),
+				]}
+			>
+				<Text size={14} modifiers={[foregroundStyle("#666666")]}>
+					Loading habits…
+				</Text>
+			</VStack>
+		);
+	}
+
 	const viewState = getWidgetViewState(storeInstance.store, widgetSize);
 	const { incompleteHabits, totalIncomplete, allComplete, hasHabits } =
 		viewState;
@@ -75,51 +91,42 @@ const HabitWidget = (props: WidgetBase) => {
 
 	if (!hasHabits) {
 		return (
-			<Link url="beebloom://today">
-				<VStack
-					modifiers={[
-						padding(16),
-						frame({ maxWidth: Infinity, maxHeight: Infinity }),
-					]}
-				>
-					<Text modifiers={[font({ size: 14 }), foregroundStyle("#666666")]}>
-						Add your first habit in BeeBloom
-					</Text>
-				</VStack>
-			</Link>
+			<VStack
+				modifiers={[
+					padding({ all: 16 }),
+					frame({ maxWidth: Infinity, maxHeight: Infinity }),
+				]}
+			>
+				<Text size={14} modifiers={[foregroundStyle("#666666")]}>
+					Add your first habit in BeeBloom
+				</Text>
+			</VStack>
 		);
 	}
 
 	if (allComplete) {
 		return (
-			<Link url="beebloom://today">
-				<VStack
-					modifiers={[
-						padding(16),
-						frame({ maxWidth: Infinity, maxHeight: Infinity }),
-					]}
-				>
-					<Text modifiers={[font({ size: 16, weight: "semibold" })]}>
-						All habits completed today! 🌸
-					</Text>
-				</VStack>
-			</Link>
+			<VStack
+				modifiers={[
+					padding({ all: 16 }),
+					frame({ maxWidth: Infinity, maxHeight: Infinity }),
+				]}
+			>
+				<Text size={16} weight="semibold">
+					All habits completed today! 🌸
+				</Text>
+			</VStack>
 		);
 	}
 
 	return (
 		<VStack
 			modifiers={[
-				padding(12),
+				padding({ all: 12 }),
 				frame({ maxWidth: Infinity, alignment: "topLeading" }),
 			]}
 		>
-			<Text
-				modifiers={[
-					font({ size: 12, weight: "medium" }),
-					foregroundStyle("#999999"),
-				]}
-			>
+			<Text size={12} weight="medium" modifiers={[foregroundStyle("#999999")]}>
 				BeeBloom
 			</Text>
 
@@ -128,25 +135,27 @@ const HabitWidget = (props: WidgetBase) => {
 			{incompleteHabits.map((habit) => (
 				<Button
 					key={habit.id}
-					action={() => {
-						setHabitComplete(storeInstance.store, habit.id);
-						refreshWidgetTimeline();
+					onPress={() => {
+						try {
+							setHabitComplete(storeInstance.store, habit.id);
+							refreshWidgetTimeline();
+						} catch (error) {
+							console.error("Failed to complete habit:", error);
+						}
 					}}
 				>
 					<HStack modifiers={[padding({ vertical: 4 })]}>
-						<Text
-							modifiers={[foregroundStyle(habit.color), font({ size: 16 })]}
-						>
+						<Text size={16} modifiers={[foregroundStyle(habit.color)]}>
 							●
 						</Text>
 
 						<Text
 							modifiers={[
 								// Responsive typography: smaller size for compact widget.
-								font({ size: widgetSize === "small" ? 13 : 14 }),
 								foregroundStyle("#000000"),
 								padding({ leading: 8 }),
 							]}
+							size={widgetSize === "small" ? 13 : 14}
 						>
 							{habit.title}
 						</Text>
@@ -156,13 +165,10 @@ const HabitWidget = (props: WidgetBase) => {
 
 			{overflowCount > 0 && (
 				<Text
-					modifiers={[
-						font({ size: 11 }),
-						foregroundStyle("#999999"),
-						padding({ top: 4 }),
-					]}
+					size={11}
+					modifiers={[foregroundStyle("#999999"), padding({ top: 4 })]}
 				>
-					+{overflowCount} more
+					{`+${overflowCount} more`}
 				</Text>
 			)}
 		</VStack>

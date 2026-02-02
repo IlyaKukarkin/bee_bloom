@@ -1,7 +1,10 @@
+import { Paths } from "expo-file-system";
 import * as SQLite from "expo-sqlite";
+import { Platform } from "react-native";
 import { createStore, type Store } from "tinybase";
 import { createExpoSqlitePersister } from "tinybase/persisters/persister-expo-sqlite";
 import { todayKey } from "../lib/dates";
+import { generateCheckId } from "./checks";
 import { schema } from "./schema";
 import type { HabitGroupRow, HabitRow } from "./types";
 
@@ -32,23 +35,35 @@ export type WidgetViewState = {
 	generatedAt: Date;
 };
 
-const getCheckRowId = (habitId: string, date: string) => `${habitId}:${date}`;
-
+/**
+ * Creates a widget-specific Tinybase store connected to the shared SQLite database.
+ * Uses App Group container on iOS to share data with the main app.
+ *
+ * @returns Object containing store, persister, load promise, and isLoaded check
+ */
 export function createWidgetStore() {
 	const store = createStore();
 	// biome-ignore lint/suspicious/noExplicitAny: TinyBase schema requires any type
 	store.setSchema(schema as any);
 
+	// Use App Group directory on iOS to share database with main app
+	const dbDirectory =
+		Platform.OS === "ios"
+			? Paths.appleSharedContainers["group.com.ilyakukarkinorg.beebloom"]?.uri
+			: undefined;
+
 	const persister = createExpoSqlitePersister(
 		store,
-		SQLite.openDatabaseSync(DB_NAME),
+		SQLite.openDatabaseSync(DB_NAME, undefined, dbDirectory),
 	);
 
 	let loaded = false;
 	const loadPromise = persister
 		.load()
-		.then(() => {
+		.then(async () => {
 			loaded = true;
+			// Auto-save to persist widget actions (habit completions) back to database
+			await persister.startAutoSave();
 		})
 		.catch((error) => {
 			console.warn("Widget store load failed", error);
@@ -62,10 +77,22 @@ export function createWidgetStore() {
 	};
 }
 
+/**
+ * Gets the date key for today in YYYY-MM-DD format.
+ *
+ * @param now - Optional date for testing, defaults to current date
+ * @returns Date key string (e.g., "2026-02-02")
+ */
 export function getTodayDateKey(now = new Date()): string {
 	return todayKey(now);
 }
 
+/**
+ * Maps iOS widget family name to internal size category.
+ *
+ * @param family - iOS WidgetKit family name (systemSmall, systemMedium, systemLarge)
+ * @returns Internal size category
+ */
 export function getWidgetSizeFromFamily(family: string): WidgetSize {
 	if (family === "systemSmall") return "small";
 	if (family === "systemMedium") return "medium";
@@ -94,24 +121,27 @@ export function getTodayIncompleteHabits(
 	Object.entries(habits).forEach(([habitId, habit]) => {
 		if (habit.deletedAt) return;
 
-		const checkId = getCheckRowId(habitId, dateKey);
+		const checkId = generateCheckId(habitId, dateKey);
 		const check = store.getRow("checks", checkId) as
 			| { completed?: boolean }
 			| undefined;
 
 		if (check?.completed) return;
 
-		const group = habit.groupId ? groups[habit.groupId] : null;
 		items.push({
 			id: habitId,
 			title: habit.title,
 			color: habit.color,
 			groupId: habit.groupId ?? null,
-			groupTitle: group?.title ?? null,
+			// Use optional chaining to handle missing groups gracefully
+			groupTitle: habit.groupId ? (groups[habit.groupId]?.title ?? null) : null,
 			order: habit.order ?? 0,
 		});
 	});
 
+	// Sort by group order first, then habit order within group
+	// Ungrouped habits get Number.MAX_SAFE_INTEGER to appear last,
+	// matching the Today view behavior where ungrouped habits are at the bottom
 	items.sort((a, b) => {
 		const aGroupOrder = a.groupId
 			? (groupOrder.get(a.groupId) ?? 0)
@@ -127,6 +157,13 @@ export function getTodayIncompleteHabits(
 	return items;
 }
 
+/**
+ * Generates a complete view state for widget rendering.
+ *
+ * @param store - Tinybase store instance
+ * @param widgetSize - Widget size category (small/medium/large)
+ * @returns View state with incomplete habits and metadata
+ */
 export function getWidgetViewState(
 	store: Store,
 	widgetSize: WidgetSize,
@@ -147,13 +184,29 @@ export function getWidgetViewState(
 	};
 }
 
+/**
+ * Marks a habit as complete for today by creating/updating a check row.
+ * Validates that the habit exists and is not deleted before writing.
+ *
+ * @param store - Tinybase store instance
+ * @param habitId - ID of the habit to complete
+ * @param now - Optional date for testing, defaults to current date
+ * @throws Error if habit doesn't exist or is deleted
+ */
 export function setHabitComplete(
 	store: Store,
 	habitId: string,
 	now = new Date(),
 ): void {
+	// Validate habit exists and is not deleted
+	const habit = store.getRow("habits", habitId);
+	if (!habit || habit.deletedAt) {
+		throw new Error(`Habit ${habitId} not found or deleted`);
+	}
+
 	const dateKey = getTodayDateKey(now);
-	const checkId = getCheckRowId(habitId, dateKey);
+	const checkId = generateCheckId(habitId, dateKey);
+	// Use 'now' parameter consistently for both date fields
 	const updatedAt = now.toISOString();
 
 	store.setRow("checks", checkId, {

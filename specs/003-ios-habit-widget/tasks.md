@@ -257,13 +257,13 @@ After **Phase 7** (Polish):
 
 **Setup**: 4 tasks  
 **Foundational**: 5 tasks  
-**User Story 1 (P1)**: 8 tasks  
+**User Story 1 (P1)**: 10 tasks  
 **User Story 2 (P1)**: 6 tasks  
 **User Story 3 (P2)**: 6 tasks  
 **User Story 4 (P3)**: 4 tasks  
 **Polish**: 10 tasks  
 
-**Total**: 43 tasks
+**Total**: 45 tasks
 
 **Estimated Time**: 6-8 hours total (as per plan.md)
 
