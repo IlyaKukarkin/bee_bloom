@@ -5,7 +5,7 @@ import {
 	frame,
 	padding,
 } from "@expo/ui/swift-ui/modifiers";
-import { updateWidgetTimeline, type WidgetBase } from "expo-widgets";
+import { createWidget, type WidgetBase } from "expo-widgets";
 import {
 	createWidgetStore,
 	getWidgetSizeFromFamily,
@@ -24,6 +24,15 @@ function getWidgetStore() {
 	}
 
 	return widgetStore;
+}
+
+let habitWidget: ReturnType<typeof createWidget> | null = null;
+
+function getHabitWidget() {
+	if (!habitWidget) {
+		habitWidget = createWidget("HabitWidget", HabitWidget);
+	}
+	return habitWidget;
 }
 
 const RETRY_DELAY_MS = 5000;
@@ -56,7 +65,11 @@ function buildTimelineDates(now = new Date()): Date[] {
 
 export function refreshWidgetTimeline(retryCount = 0): void {
 	try {
-		updateWidgetTimeline("HabitWidget", buildTimelineDates(), HabitWidget);
+		// The widget reads habit data directly from the shared SQLite store,
+		// so timeline entries require no custom props — only the date is needed.
+		getHabitWidget().updateTimeline(
+			buildTimelineDates().map((date) => ({ date, props: {} })),
+		);
 	} catch (error) {
 		if (retryCount >= MAX_RETRIES) {
 			console.error("Widget timeline update failed after max retries:", error);
