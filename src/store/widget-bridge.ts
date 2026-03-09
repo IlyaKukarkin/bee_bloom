@@ -4,7 +4,7 @@ import { Platform } from "react-native";
 import { createStore, type Store } from "tinybase";
 import { createExpoSqlitePersister } from "tinybase/persisters/persister-expo-sqlite";
 import { todayKey } from "../lib/dates";
-import { generateCheckId } from "./checks";
+import { generateCheckId, getWeeklyChecks } from "./checks";
 import { schema } from "./schema";
 import type { HabitGroupRow, HabitRow } from "./types";
 
@@ -13,9 +13,14 @@ const DB_NAME = "beebloom.db";
 export type WidgetSize = "small" | "medium" | "large";
 
 export const WIDGET_CAPACITY: Record<WidgetSize, number> = {
-	small: 3,
-	medium: 6,
-	large: 10,
+	small: 4,
+	medium: 4,
+	large: 8,
+};
+
+export type WeeklyProgress = {
+	completed: number;
+	target: number;
 };
 
 export type HabitWidgetItem = {
@@ -25,6 +30,7 @@ export type HabitWidgetItem = {
 	groupId: string | null;
 	groupTitle: string | null;
 	order: number;
+	weeklyProgress?: WeeklyProgress;
 };
 
 export type WidgetViewState = {
@@ -97,6 +103,22 @@ export function getWidgetSizeFromFamily(family: string): WidgetSize {
 	if (family === "systemSmall") return "small";
 	if (family === "systemMedium") return "medium";
 	return "large";
+}
+
+export function calculateWeeklyProgress(
+	store: Store,
+	habitId: string,
+	weeklyTarget?: number | null,
+	now = new Date(),
+): WeeklyProgress | undefined {
+	const weeklyChecks = getWeeklyChecks(store, habitId, now);
+	const completed = weeklyChecks.filter((check) => check.completed).length;
+	const target = Math.min(7, Math.max(1, weeklyTarget ?? 7));
+
+	return {
+		completed,
+		target,
+	};
 }
 
 function getGroupOrderMap(store: Store): Map<string, number> {
@@ -173,7 +195,21 @@ export function getWidgetViewState(
 	const habits = store.getTable("habits") as Record<string, HabitRow>;
 	const hasHabits = Object.values(habits).some((habit) => !habit.deletedAt);
 
-	const incompleteHabits = getTodayIncompleteHabits(store, dateKey);
+	let incompleteHabits = getTodayIncompleteHabits(store, dateKey);
+
+	if (widgetSize !== "small") {
+		incompleteHabits = incompleteHabits.map((habit) => {
+			const sourceHabit = habits[habit.id];
+			return {
+				...habit,
+				weeklyProgress: calculateWeeklyProgress(
+					store,
+					habit.id,
+					sourceHabit?.weeklyTarget,
+				),
+			};
+		});
+	}
 
 	return {
 		incompleteHabits: incompleteHabits.slice(0, maxDisplay),
