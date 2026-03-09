@@ -82,6 +82,7 @@ export function refreshWidgetTimeline(retryCount = 0): void {
 }
 
 const HabitWidget = (props: WidgetBase) => {
+	'widget';
 	const storeInstance = getWidgetStore();
 	const isLoaded = storeInstance.isLoaded();
 	const widgetSize = getWidgetSizeFromFamily(props.family);
@@ -174,16 +175,28 @@ const HabitWidget = (props: WidgetBase) => {
 							●
 						</Text>
 
-						<Text
-							modifiers={[
-								// Responsive typography: smaller size for compact widget.
-								font({ size: widgetSize === "small" ? 13 : 14 }),
-								foregroundStyle("#000000"),
-								padding({ leading: 8 }),
-							]}
-						>
-							{habit.title}
-						</Text>
+						<VStack modifiers={[padding({ leading: 8 })]}>
+							<Text
+								modifiers={[
+									// Responsive typography: smaller size for compact widget.
+									font({ size: widgetSize === "small" ? 13 : 14 }),
+									foregroundStyle("#000000"),
+								]}
+							>
+								{habit.title}
+							</Text>
+
+							{widgetSize !== "small" && habit.weeklyProgress && (
+								<Text
+									modifiers={[
+										font({ size: 11 }),
+										foregroundStyle("#666666"),
+									]}
+								>
+									{`${habit.weeklyProgress.completed}/${habit.weeklyProgress.target} this week`}
+								</Text>
+							)}
+						</VStack>
 					</HStack>
 				</Button>
 			))}

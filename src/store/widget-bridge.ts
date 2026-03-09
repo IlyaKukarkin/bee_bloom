@@ -13,9 +13,14 @@ const DB_NAME = "beebloom.db";
 export type WidgetSize = "small" | "medium" | "large";
 
 export const WIDGET_CAPACITY: Record<WidgetSize, number> = {
-	small: 3,
-	medium: 6,
-	large: 10,
+	small: 4,
+	medium: 4,
+	large: 8,
+};
+
+export type WeeklyProgress = {
+	completed: number;
+	target: number;
 };
 
 export type HabitWidgetItem = {
@@ -25,6 +30,7 @@ export type HabitWidgetItem = {
 	groupId: string | null;
 	groupTitle: string | null;
 	order: number;
+	weeklyProgress?: WeeklyProgress;
 };
 
 export type WidgetViewState = {
@@ -97,6 +103,59 @@ export function getWidgetSizeFromFamily(family: string): WidgetSize {
 	if (family === "systemSmall") return "small";
 	if (family === "systemMedium") return "medium";
 	return "large";
+}
+
+export function getWeekStartDate(now = new Date()): string {
+	const date = new Date(now);
+	const day = date.getDay();
+	date.setDate(date.getDate() - day);
+	date.setHours(0, 0, 0, 0);
+	return todayKey(date);
+}
+
+export function getWeekEndDate(now = new Date()): string {
+	const date = new Date(now);
+	const day = date.getDay();
+	date.setDate(date.getDate() + (6 - day));
+	date.setHours(23, 59, 59, 999);
+	return todayKey(date);
+}
+
+export function calculateWeeklyProgress(
+	store: Store,
+	habitId: string,
+	weeklyTarget?: number | null,
+	now = new Date(),
+): WeeklyProgress | undefined {
+	if (!weeklyTarget || weeklyTarget <= 0) {
+		return undefined;
+	}
+
+	const weekStart = getWeekStartDate(now);
+	const weekEnd = getWeekEndDate(now);
+	const checks = store.getTable("checks") as Record<
+		string,
+		{ habitId?: string; date?: string; completed?: boolean }
+	>;
+
+	const completedDays = new Set<string>();
+
+	Object.values(checks).forEach((check) => {
+		if (
+			check.habitId === habitId &&
+			check.completed === true &&
+			typeof check.date === "string" &&
+			check.date >= weekStart &&
+			check.date <= weekEnd
+		) {
+			completedDays.add(check.date);
+		}
+	});
+
+	return {
+		completed: completedDays.size,
+		target: weeklyTarget,
+	};
 }
 
 function getGroupOrderMap(store: Store): Map<string, number> {
@@ -173,7 +232,21 @@ export function getWidgetViewState(
 	const habits = store.getTable("habits") as Record<string, HabitRow>;
 	const hasHabits = Object.values(habits).some((habit) => !habit.deletedAt);
 
-	const incompleteHabits = getTodayIncompleteHabits(store, dateKey);
+	let incompleteHabits = getTodayIncompleteHabits(store, dateKey);
+
+	if (widgetSize !== "small") {
+		incompleteHabits = incompleteHabits.map((habit) => {
+			const sourceHabit = habits[habit.id];
+			return {
+				...habit,
+				weeklyProgress: calculateWeeklyProgress(
+					store,
+					habit.id,
+					sourceHabit?.weeklyTarget,
+				),
+			};
+		});
+	}
 
 	return {
 		incompleteHabits: incompleteHabits.slice(0, maxDisplay),
