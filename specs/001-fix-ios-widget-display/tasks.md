@@ -29,8 +29,8 @@
 
 **⚠️ CRITICAL**: Widget cannot render without this directive. This MUST complete before any user story work.
 
-- [ ] T001 Add `'widget'` directive as first line of HabitWidget component in widgets/HabitWidget.tsx
-- [ ] T002 Update WIDGET_CAPACITY constants to `{ small: 4, medium: 4, large: 8 }` in src/store/widget-bridge.ts
+- [x] T001 Add `'widget'` directive as first line of HabitWidget component in widgets/HabitWidget.tsx
+- [x] T002 Update WIDGET_CAPACITY constants to `{ small: 4, medium: 4, large: 8 }` in src/store/widget-bridge.ts
 
 **Checkpoint**: Foundation ready - widget can now render; proceed to user story enhancements
 
@@ -44,12 +44,12 @@
 
 ### Implementation for User Story 1
 
-- [ ] T003 [US1] Extend `HabitWidgetItem` type with optional `weeklyProgress?: { completed: number; target: number }` in src/store/widget-bridge.ts
-- [ ] T004 [US1] Add `getWeekStartDate()` helper function to calculate Sunday 00:00 of current week in src/store/widget-bridge.ts
-- [ ] T005 [US1] Add `getWeekEndDate()` helper function to calculate Saturday 23:59 of current week in src/store/widget-bridge.ts
-- [ ] T006 [US1] Add `calculateWeeklyProgress(store, habitId, weeklyTarget)` function that counts distinct check dates within current week in src/store/widget-bridge.ts
-- [ ] T007 [US1] Modify `getWidgetViewState()` to call `calculateWeeklyProgress()` and populate `weeklyProgress` field for medium/large widgets only in src/store/widget-bridge.ts
-- [ ] T008 [US1] Update HabitWidget component to conditionally render weekly progress text "(X/Y this week)" for medium and large widgets in widgets/HabitWidget.tsx
+- [x] T003 [US1] Extend `HabitWidgetItem` type with optional `weeklyProgress?: { completed: number; target: number }` in src/store/widget-bridge.ts
+- [x] T004 [US1] Add `getWeekStartDate()` helper function to calculate Sunday 00:00 of current week in src/store/widget-bridge.ts
+- [x] T005 [US1] Add `getWeekEndDate()` helper function to calculate Saturday 23:59 of current week in src/store/widget-bridge.ts
+- [x] T006 [US1] Add `calculateWeeklyProgress(store, habitId, weeklyTarget)` function that counts distinct check dates within current week in src/store/widget-bridge.ts
+- [x] T007 [US1] Modify `getWidgetViewState()` to call `calculateWeeklyProgress()` and populate `weeklyProgress` field for medium/large widgets only in src/store/widget-bridge.ts
+- [x] T008 [US1] Update HabitWidget component to conditionally render weekly progress text "(X/Y this week)" for medium and large widgets in widgets/HabitWidget.tsx
 - [ ] T009 [US1] Verify weekly progress text appears after habit title in Medium widget layout in widgets/HabitWidget.tsx
 - [ ] T010 [US1] Verify weekly progress text appears after habit title in Large widget layout in widgets/HabitWidget.tsx
 - [ ] T011 [US1] Test overflow indicator displays "+N more" when incomplete habits exceed capacity in widgets/HabitWidget.tsx

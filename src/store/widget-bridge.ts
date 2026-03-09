@@ -4,7 +4,7 @@ import { Platform } from "react-native";
 import { createStore, type Store } from "tinybase";
 import { createExpoSqlitePersister } from "tinybase/persisters/persister-expo-sqlite";
 import { todayKey } from "../lib/dates";
-import { generateCheckId } from "./checks";
+import { generateCheckId, getWeeklyChecks } from "./checks";
 import { schema } from "./schema";
 import type { HabitGroupRow, HabitRow } from "./types";
 
@@ -105,56 +105,19 @@ export function getWidgetSizeFromFamily(family: string): WidgetSize {
 	return "large";
 }
 
-export function getWeekStartDate(now = new Date()): string {
-	const date = new Date(now);
-	const day = date.getDay();
-	date.setDate(date.getDate() - day);
-	date.setHours(0, 0, 0, 0);
-	return todayKey(date);
-}
-
-export function getWeekEndDate(now = new Date()): string {
-	const date = new Date(now);
-	const day = date.getDay();
-	date.setDate(date.getDate() + (6 - day));
-	date.setHours(23, 59, 59, 999);
-	return todayKey(date);
-}
-
 export function calculateWeeklyProgress(
 	store: Store,
 	habitId: string,
 	weeklyTarget?: number | null,
 	now = new Date(),
 ): WeeklyProgress | undefined {
-	if (!weeklyTarget || weeklyTarget <= 0) {
-		return undefined;
-	}
-
-	const weekStart = getWeekStartDate(now);
-	const weekEnd = getWeekEndDate(now);
-	const checks = store.getTable("checks") as Record<
-		string,
-		{ habitId?: string; date?: string; completed?: boolean }
-	>;
-
-	const completedDays = new Set<string>();
-
-	Object.values(checks).forEach((check) => {
-		if (
-			check.habitId === habitId &&
-			check.completed === true &&
-			typeof check.date === "string" &&
-			check.date >= weekStart &&
-			check.date <= weekEnd
-		) {
-			completedDays.add(check.date);
-		}
-	});
+	const weeklyChecks = getWeeklyChecks(store, habitId, now);
+	const completed = weeklyChecks.filter((check) => check.completed).length;
+	const target = Math.min(7, Math.max(1, weeklyTarget ?? 7));
 
 	return {
-		completed: completedDays.size,
-		target: weeklyTarget,
+		completed,
+		target,
 	};
 }
 
