@@ -82,7 +82,7 @@ export function refreshWidgetTimeline(retryCount = 0): void {
 }
 
 const HabitWidget = (props: WidgetBase) => {
-	'widget';
+	"widget";
 	const storeInstance = getWidgetStore();
 	const isLoaded = storeInstance.isLoaded();
 	const widgetSize = getWidgetSizeFromFamily(props.family);
@@ -188,10 +188,7 @@ const HabitWidget = (props: WidgetBase) => {
 
 							{widgetSize !== "small" && habit.weeklyProgress && (
 								<Text
-									modifiers={[
-										font({ size: 11 }),
-										foregroundStyle("#666666"),
-									]}
+									modifiers={[font({ size: 11 }), foregroundStyle("#666666")]}
 								>
 									{`${habit.weeklyProgress.completed}/${habit.weeklyProgress.target} this week`}
 								</Text>
