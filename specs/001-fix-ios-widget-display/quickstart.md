@@ -148,7 +148,33 @@ eas build --platform ios --profile development --clear-cache
 
 ### Widget Shows Black Screen
 
-**Likely Cause**: Missing `'widget'` directive in HabitWidget component
+**⚠️ CRITICAL BUG (2026-03-10)**: EAS Build does not automatically sync App Groups capability to widget extension bundle ID.
+
+**Primary Cause**: [expo/expo#43677](https://github.com/expo/expo/issues/43677) - App Groups not configured on widget extension
+
+**Manual Workaround**:
+1. Go to [Apple Developer Portal](https://developer.apple.com/account/resources/identifiers/list)
+2. Find identifier: `com.ilyakukarkinorg.beebloom.widgets` (widget extension)
+3. Edit → Enable "App Groups" capability
+4. Add group: `group.com.ilyakukarkinorg.beebloom` (same as main app)
+5. Save changes
+6. Delete widget provisioning profiles:
+   ```bash
+   eas credentials -p ios
+   # Select widget target → Delete provisioning profile
+   ```
+7. Rebuild:
+   ```bash
+   eas build --platform ios --profile development --clear-cache
+   ```
+
+**Status**: Bug reported but under investigation. Expo team unable to reproduce consistently.
+
+**UPDATE 2026-03-10**: Testing confirmed black widgets persist even with minimal test widget (no database access), and App Groups IS correctly configured. Root cause appears to be [expo/expo#43646](https://github.com/expo/expo/issues/43646) - JS runtime bundle not copied to .appex. Proposed fix in [PR #43654](https://github.com/expo/expo/pull/43654) is under review but maintainer cannot reproduce the issue. Waiting for Expo team resolution.
+
+---
+
+**Secondary Cause**: Missing `'widget'` directive in HabitWidget component
 
 **Fix**:
 1. Open `widgets/HabitWidget.tsx`
@@ -200,3 +226,61 @@ For implementation reference:
 | `src/store/widget-bridge.ts` | Extend HabitWidgetItem type | 1 |
 
 **Total**: ~40 lines across 2 files
+
+---
+
+## Known Issues & Blockers
+
+### Black Widget Rendering (2026-03-10)
+
+**Status**: ⏸️ BLOCKED - Waiting for Expo team to resolve
+
+**Symptoms**:
+- All widgets render completely black on iOS home screen
+- Issue affects both simple test widgets and complex widgets
+- Widgets are clickable but show no visual content
+- Persists across rebuilds and reinstalls
+
+**Root Cause Analysis**:
+1. **Initial Hypothesis**: Missing `'widget'` directive
+   - ✅ RESOLVED: Added directive, issue persists
+   
+2. **Secondary Hypothesis**: App Groups misconfiguration ([#43677](https://github.com/expo/expo/issues/43677))
+   - ✅ VERIFIED: App Groups correctly configured in Apple Developer Portal
+   - ✅ VERIFIED: Both main app and widget extension have matching group ID
+   - ❌ NOT THE CAUSE: Issue persists with correct configuration
+
+3. **Current Leading Theory**: JS Runtime Bundle Missing ([#43646](https://github.com/expo/expo/issues/43646))
+   - ExpoWidgets.bundle not being copied into widget extension (.appex)
+   - Proposed fix in [PR #43654](https://github.com/expo/expo/pull/43654)
+   - **CAVEAT**: Expo maintainer (jakex7) cannot reproduce the issue
+   - May be specific to EAS Build workflow vs local builds
+   - May be configuration-specific
+
+**Environment Details**:
+```
+expo-widgets: ~55.0.3
+expo: ~55.0.5
+Build Method: EAS Build (development profile)
+Platform: iOS
+TestFlight: Yes
+```
+
+**Testing Performed**:
+- ✅ Created minimal test widget (no DB, no store, just text) - still black
+- ✅ Verified `'widget'` directive present as first line
+- ✅ Confirmed App Groups capability enabled on both bundle IDs
+- ✅ Verified group identifier matches exactly: `group.com.ilyakukarkinorg.beebloom`
+- ✅ Rebuilt with `--clear-cache` multiple times
+
+**Next Steps**:
+1. Wait for Expo team to investigate and resolve
+2. Monitor PR #43654 for merge status
+3. Try local build (`npx expo run:ios`) to compare with EAS build
+4. Consider testing with expo-widgets 55.0.4+ when released
+
+**Workaround**: None currently - feature blocked until resolved
+
+**Related Files**:
+- [TestWidget.tsx](widgets/TestWidget.tsx) - Minimal test widget for debugging
+- [HabitWidget.tsx](widgets/HabitWidget.tsx) - Production widget (also affected)

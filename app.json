@@ -49,6 +49,16 @@
 								"systemMedium",
 								"systemLarge"
 							]
+						},
+						{
+							"name": "TestWidget",
+							"displayName": "BeeBloom Test",
+							"description": "Simple test widget",
+							"supportedFamilies": [
+								"systemSmall",
+								"systemMedium",
+								"systemLarge"
+							]
 						}
 					]
 				}

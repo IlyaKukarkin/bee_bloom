@@ -95,6 +95,54 @@
 
 ---
 
+### Task 6: Black Widget Screen Investigation (2026-03-10)
+
+**Question**: Why are widgets rendering completely black even with minimal test widget?
+
+**Finding**: CRITICAL BUG in expo-widgets + EAS Build - App Groups capability not synced to widget extension.
+
+**Details**:
+- **Issue**: [expo/expo#43677](https://github.com/expo/expo/issues/43677) - App Group capability not synced to widget extension bundle ID during EAS Build
+- **Status**: Accepted by Expo team (9 hours ago as of 2026-03-10), no timeline for fix
+- **Root Cause**: During `eas build`, the App Groups capability is registered for main app bundle ID but NOT for the widget extension bundle ID (`com.ilyakukarkinorg.beebloom.widgets`)
+- **Symptoms**: Widget renders completely black (even minimal test widgets with no DB access)
+- **Impact**: Widget extension cannot access shared SQLite database via App Groups, causing silent failures
+
+**Workaround Steps**:
+1. Go to [Apple Developer Portal](https://developer.apple.com/account/resources/identifiers/list)
+2. Find widget bundle ID: `com.ilyakukarkinorg.beebloom.widgets`
+3. Enable "App Groups" capability
+4. Assign group identifier: `group.com.ilyakukarkinorg.beebloom`
+5. Delete widget provisioning profile: `eas credentials -p ios` (select widget target)
+6. Rebuild: `eas build --platform ios --profile development --clear-cache`
+
+**Alternative**: Wait for Expo team to fix the automatic capability syncing in future release
+
+**Related Issue**: [expo/expo#43646](https://github.com/expo/expo/issues/43646) - ExpoWidgets.bundle JS runtime missing (closed last week, may be related)
+
+**Decision**: Document workaround steps in quickstart.md; revisit after expo-widgets stable release
+
+**UPDATE 2026-03-10 (Evening)**:
+- Created minimal test widget with no DB/store access - still renders completely black
+- User confirmed App Groups capability is ALREADY enabled and configured correctly for widget bundle ID
+- This confirms issue is NOT App Groups misconfiguration (#43677)
+- Root cause appears to be [expo/expo#43646](https://github.com/expo/expo/issues/43646): ExpoWidgets.bundle JS runtime not being copied into .appex
+- However, PR #43654 (proposed fix) is under review - Expo maintainer cannot reproduce the issue
+- Issue may be specific to EAS Build vs local `npx expo run:ios` builds
+- Issue may be specific to certain project configurations
+
+**Tested Configuration**:
+- `expo-widgets ~55.0.3`
+- Building via EAS Build with development profile
+- App Groups correctly configured in Apple Developer Portal
+- Both main app and widget extension have matching group identifier
+- Widget directive `'widget'` present in component
+- Issue persists even with minimal test widget (no database, no complex logic)
+
+**Decision**: Wait for Expo team to resolve. Issue is acknowledged but reproduction is inconsistent across different environments.
+
+---
+
 ## Summary of Decisions
 
 | Area | Change Required | Scope |
