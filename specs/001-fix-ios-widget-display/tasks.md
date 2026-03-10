@@ -9,6 +9,30 @@
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
 
+---
+
+## 🚨 BLOCKER: Widget Rendering Issue (2026-03-10)
+
+**Status**: ⏸️ FEATURE BLOCKED - All testing and verification tasks blocked
+
+**Issue**: All widgets render completely black on iOS despite correct code implementation. Root cause appears to be expo-widgets package bug where JS runtime bundle is not being copied into widget extension (.appex).
+
+**Affected Tasks**: T009-T025 (all verification, testing, and deployment tasks)
+
+**Code Status**: ✅ Implementation complete (T001-T008)
+- Widget directive added
+- Capacity constants updated
+- Weekly progress calculation implemented
+- UI rendering logic complete
+
+**Upstream Issues**:
+- [expo/expo#43646](https://github.com/expo/expo/issues/43646) - ExpoWidgets.bundle JS runtime missing
+- [PR #43654](https://github.com/expo/expo/pull/43654) - Proposed fix under review
+
+**Action**: Waiting for Expo team to resolve package issue. See [quickstart.md](quickstart.md#known-issues--blockers) for full details.
+
+---
+
 ## Format: `[ID] [P?] [Story] Description`
 
 - **[P]**: Can run in parallel (different files, no dependencies)

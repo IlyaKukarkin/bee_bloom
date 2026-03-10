@@ -26,15 +26,6 @@ function getWidgetStore() {
 	return widgetStore;
 }
 
-let habitWidget: ReturnType<typeof createWidget> | null = null;
-
-function getHabitWidget() {
-	if (!habitWidget) {
-		habitWidget = createWidget("HabitWidget", HabitWidget);
-	}
-	return habitWidget;
-}
-
 const RETRY_DELAY_MS = 5000;
 const MAX_RETRIES = 3;
 
@@ -67,7 +58,12 @@ export function refreshWidgetTimeline(retryCount = 0): void {
 	try {
 		// The widget reads habit data directly from the shared SQLite store,
 		// so timeline entries require no custom props — only the date is needed.
-		getHabitWidget().updateTimeline(
+		// Note: habitWidget is initialized at module load (see bottom of file)
+		if (!habitWidget) {
+			console.warn("Widget not initialized yet");
+			return;
+		}
+		habitWidget.updateTimeline(
 			buildTimelineDates().map((date) => ({ date, props: {} })),
 		);
 	} catch (error) {
@@ -212,5 +208,8 @@ const HabitWidget = (props: WidgetBase) => {
 		</VStack>
 	);
 };
+
+// Initialize the widget at module load
+const habitWidget = createWidget("HabitWidget", HabitWidget);
 
 export default HabitWidget;
